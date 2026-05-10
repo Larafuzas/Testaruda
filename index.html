@@ -52,10 +52,19 @@
         .option-btn.correct { background: #D1FAE5; border-color: var(--success); color: #065F46; font-weight: 600; }
         .option-btn.wrong { background: #FEE2E2; border-color: var(--danger); color: #991B1B; }
 
+        /* Estilos del Selector de Temas */
+        .theme-controls { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 10px; font-size: 13px; font-weight: 600; color: var(--primary); }
+        .theme-controls span { cursor: pointer; text-decoration: underline; }
+
         .theme-group { margin-bottom: 12px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-        .theme-header { background: #F3F4F6; padding: 14px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 600; }
+        .theme-header { background: #F3F4F6; padding: 14px; display: flex; align-items: center; justify-content: space-between; font-weight: 600; }
+        .theme-header-info { display: flex; align-items: center; gap: 10px; cursor: pointer; flex-grow: 1; }
+        .theme-category-actions { font-size: 12px; color: var(--primary); display: flex; gap: 8px; align-items: center; }
+        .theme-category-actions span { cursor: pointer; background: white; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); }
+
         .csv-list { padding: 14px; display: none; flex-direction: column; gap: 10px; background: white; }
         .csv-item { display: flex; align-items: center; gap: 12px; font-size: 14px; cursor: pointer; padding: 4px 0; }
+        .csv-item input { width: 18px; height: 18px; }
 
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid var(--border); }
         .score-badge { background: var(--primary); color: white; padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; }
@@ -84,12 +93,12 @@
             </div>
 
             <div class="card" style="border-left: 5px solid var(--primary);">
-                <h3 style="color: var(--primary);"><i data-lucide="zap"></i> Calentamiento Real</h3>
-                <p id="random-question-text" style="margin-bottom: 15px; font-style: italic; color: var(--text-muted);">Sincronizando preguntas con GitHub...</p>
+                <h3 style="color: var(--primary);"><i data-lucide="zap"></i> Calentamiento</h3>
+                <p id="random-question-text" style="margin-bottom: 15px; font-style: italic; color: var(--text-muted);">Cargando preguntas reales...</p>
                 <div id="random-options"></div>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
                     <p id="random-feedback" style="display:none; font-weight: 600; font-size: 14px;"></p>
-                    <button id="btn-next-random" class="btn btn-sm btn-outline" style="display:none;" onclick="loadMinigame()">Otra pregunta <i data-lucide="arrow-right"></i></button>
+                    <button id="btn-next-random" class="btn btn-sm btn-outline" style="display:none;" onclick="loadMinigame()">Siguiente <i data-lucide="arrow-right"></i></button>
                 </div>
             </div>
 
@@ -102,7 +111,13 @@
 
         <div id="screen-setup" class="screen">
             <h2><i data-lucide="sliders"></i> Selección de Temas</h2>
-            <div id="themes-loader" style="text-align:center; padding:20px; color:var(--text-muted);"><i data-lucide="loader-2"></i> Cargando temas...</div>
+            
+            <div class="theme-controls" id="global-theme-controls" style="display:none;">
+                <span onclick="selectAll(true)">Marcar todos</span>
+                <span onclick="selectAll(false)">Desmarcar todos</span>
+            </div>
+
+            <div id="themes-loader" style="text-align:center; padding:20px; color:var(--text-muted);"><i data-lucide="loader-2"></i> Cargando temas de GitHub...</div>
             <div id="themes-container"></div>
             
             <div class="card" style="margin-top: 20px;">
@@ -195,16 +210,16 @@
         let appSettings = JSON.parse(localStorage.getItem('testaruda_settings')) || { timePerQuestion: 60, correctionMode: 'instant' };
         let activityLog = JSON.parse(localStorage.getItem('testaruda_log')) || [];
         let currentTest = { questions: [], currentIndex: 0, correctAnswers: 0, timer: null };
-        let randomPool = []; // Preguntas reales para el minijuego
+        let randomPool = []; 
 
         window.onload = () => {
             lucide.createIcons();
             loadSettingsToUI();
             checkOTAUpdate();
-            syncMinigameWithGitHub(); // <--- Carga real al inicio
+            syncMinigameWithGitHub(); 
         };
 
-        // --- CARGA REAL DEL MINIJUEGO ---
+        // --- CARGA DEL MINIJUEGO ---
         async function syncMinigameWithGitHub() {
             try {
                 const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}`);
@@ -222,7 +237,7 @@
                 randomPool = parsed.data;
                 loadMinigame();
             } catch (e) {
-                document.getElementById('random-question-text').innerText = "Cargando pool local (sin conexión)...";
+                document.getElementById('random-question-text').innerText = "Cargando pool local...";
                 randomPool = [{id:0, pregunta: "¿De cuántos artículos consta la CE?", a:"166", b:"167", c:"168", d:"169", correcta:"D"}];
                 loadMinigame();
             }
@@ -258,17 +273,20 @@
             lucide.createIcons();
         }
 
-        // --- GESTIÓN DE TEMAS (SETUP) ---
+        // --- SELECCIÓN DE TEMAS ---
         async function openSetup() {
             showScreen('screen-setup');
             const container = document.getElementById('themes-container');
             const loader = document.getElementById('themes-loader');
+            const controls = document.getElementById('global-theme-controls');
             if (container.children.length > 0) return;
 
             try {
                 const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}`);
                 const folders = await res.json();
-                container.innerHTML = ''; loader.style.display = 'none';
+                container.innerHTML = ''; 
+                loader.style.display = 'none';
+                controls.style.display = 'flex';
 
                 for (let item of folders) {
                     if (item.type === 'dir') {
@@ -287,10 +305,38 @@
             const id = 't_' + Math.random().toString(36).substr(2, 5);
             const div = document.createElement('div');
             div.className = 'theme-group';
-            div.innerHTML = `<div class="theme-header" onclick="document.getElementById('${id}').style.display = (document.getElementById('${id}').style.display === 'flex' ? 'none' : 'flex')">
-                <span><i data-lucide="folder"></i> ${name.replace(/_/g,' ')}</span><i data-lucide="chevron-down"></i></div>
-                <div class="csv-list" id="${id}">${files.map(f => `<label class="csv-item"><input type="checkbox" class="csv-check" data-url="${f.download_url}">${f.name.replace('.csv','').replace(/_/g,' ')}</label>`).join('')}</div>`;
+            div.innerHTML = `
+                <div class="theme-header">
+                    <div class="theme-header-info" onclick="toggleList('${id}')">
+                        <i data-lucide="folder"></i> 
+                        <span>${name.replace(/_/g,' ')}</span>
+                        <i data-lucide="chevron-down" style="width:14px; margin-left:5px;"></i>
+                    </div>
+                    <div class="theme-category-actions">
+                        <span onclick="selectCategory('${id}', true)">Todo</span>
+                        <span onclick="selectCategory('${id}', false)">Nada</span>
+                    </div>
+                </div>
+                <div class="csv-list" id="${id}">${files.map(f => `
+                    <label class="csv-item">
+                        <input type="checkbox" class="csv-check" data-url="${f.download_url}">
+                        ${f.name.replace('.csv','').replace(/_/g,' ')}
+                    </label>`).join('')}
+                </div>`;
             container.appendChild(div);
+        }
+
+        function toggleList(id) {
+            const el = document.getElementById(id);
+            el.style.display = (el.style.display === 'flex' ? 'none' : 'flex');
+        }
+
+        function selectAll(checked) {
+            document.querySelectorAll('.csv-check').forEach(cb => cb.checked = checked);
+        }
+
+        function selectCategory(id, checked) {
+            document.getElementById(id).querySelectorAll('.csv-check').forEach(cb => cb.checked = checked);
         }
 
         // --- TEST CORE ---
@@ -365,7 +411,7 @@
         async function checkOTAUpdate() { try { const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/commits?path=index.html&per_page=1`), data = await res.json(), latest = data[0].sha, curr = localStorage.getItem('testaruda_sha'); if (curr && curr !== latest) document.getElementById('ota-alert').style.display = 'block'; if (!curr) localStorage.setItem('testaruda_sha', latest); } catch(e){} }
         function renderHistory() { const c = document.getElementById('history-container'); c.innerHTML = activityLog.slice().reverse().map(e => `<div class="history-item"><div><b>${e.date}</b><br><small>${e.time}</small></div><div class="score-badge">${e.score}/${e.total}</div></div>`).join(''); }
         function renderReview() { const c = document.getElementById('review-container'); c.innerHTML = ''; currentTest.questions.forEach((q,i) => { const d = document.createElement('div'); d.className='review-q'; d.innerHTML=`<p><b>${i+1}. ${q.pregunta}</b></p>`+['a','b','c','d'].map(l => `<div class="r-option ${q.correcta===l.toUpperCase()?'r-correct':(q.userAnswer===l.toUpperCase()?'r-wrong':'')}">${l.toUpperCase()}) ${q[l]}</div>`).join(''); c.appendChild(d); }); }
-        function exportToPDF() { html2pdf().set({margin:10, filename:'Testaruda.pdf'}).from(document.getElementById('pdf-content')).save(); }
+        function exportToPDF() { html2pdf().set({margin:10, filename:'Testaruda_Revision.pdf'}).from(document.getElementById('pdf-content')).save(); }
         function abandonTest() { if(confirm("¿Salir?")) { clearInterval(currentTest.timer); showScreen('screen-home'); } }
     </script>
 </body>
