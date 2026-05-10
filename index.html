@@ -2,8 +2,17 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Testaruda - Oposiciones</title>
+    
+    <link rel="icon" type="image/png" href="icono.png">
+    <link rel="apple-touch-icon" href="icono.png">
+    <meta name="apple-mobile-web-app-title" content="Testaruda">
+    <meta name="application-name" content="Testaruda">
+    <meta name="theme-color" content="#4F46E5">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -419,7 +428,6 @@
             document.getElementById('btn-prev').style.display = (isEnd && currentTest.currentIndex > 0) ? 'inline-flex' : 'none';
             document.getElementById('btn-next').innerText = (currentTest.currentIndex === currentTest.questions.length - 1) ? 'Finalizar' : 'Siguiente';
             
-            // Estado del Marcador (Estrella)
             const starBtn = document.getElementById('btn-bookmark');
             const isBookmarked = bookmarkedQuestions.some(b => b.pregunta === q.pregunta);
             if (isBookmarked) {
