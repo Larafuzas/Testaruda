@@ -40,7 +40,6 @@
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
 
         .option-btn { display: block; width: 100%; text-align: left; padding: 14px 18px; margin-bottom: 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--card-bg); cursor: pointer; font-size: 15px; transition: 0.2s; }
-        /* Evitar el hover persistente en móviles desactivando hover si ya fue respondida */
         .option-btn:hover:not(:disabled) { border-color: var(--primary); background: #EEF2FF; }
         .option-btn.selected { background: #E0E7FF; border-color: var(--primary); color: var(--primary-hover); font-weight: 600; border-width: 2px; }
         .option-btn.correct { background: #D1FAE5; border-color: var(--success); color: #065F46; font-weight: 600; }
@@ -224,7 +223,7 @@
         let bookmarkedQuestions = JSON.parse(localStorage.getItem('testaruda_bookmarks')) || [];
         let currentTest = { questions: [], currentIndex: 0, correctAnswers: 0, timer: null };
         let randomPool = []; 
-        let minigameAnswered = false; // Nueva variable para evitar bloqueos CSS
+        let minigameAnswered = false; 
 
         window.onload = () => {
             lucide.createIcons();
@@ -259,7 +258,7 @@
 
         function loadMinigame() {
             if (randomPool.length === 0) return;
-            minigameAnswered = false; // Reseteamos el estado
+            minigameAnswered = false; 
 
             const q = randomPool[Math.floor(Math.random() * randomPool.length)];
             document.getElementById('random-question-text').innerText = q.pregunta;
@@ -273,10 +272,14 @@
                 const btn = document.createElement('button');
                 btn.className = 'option-btn';
                 btn.innerText = `${l.toUpperCase()}) ${q[l]}`;
+                btn.disabled = false; // Nos aseguramos de que empiece habilitado
                 
                 btn.onclick = () => {
-                    if(minigameAnswered) return; // Evitamos clicks extra por JS, no por CSS
+                    if(minigameAnswered) return; 
                     minigameAnswered = true;
+                    
+                    // Bloqueamos los botones SOLO en el div del minijuego
+                    document.querySelectorAll('#random-options .option-btn').forEach(b => b.disabled = true);
                     
                     if (l.toUpperCase() === q.correcta) {
                         btn.classList.add('correct');
@@ -413,30 +416,53 @@
             const optsDiv = document.getElementById('test-options'); optsDiv.innerHTML = '';
             
             ['a','b','c','d'].forEach(l => {
-                const btn = document.createElement('button'); btn.className = 'option-btn'; btn.innerText = `${l.toUpperCase()}) ${q[l]}`;
+                const btn = document.createElement('button'); 
+                btn.className = 'option-btn'; 
+                btn.innerText = `${l.toUpperCase()}) ${q[l]}`;
                 
-                if (q.userAnswer === l.toUpperCase()) btn.classList.add(isEnd ? 'selected' : (q.userAnswer === q.correcta ? 'correct' : 'wrong'));
-                if (!isEnd && q.userAnswer && l.toUpperCase() === q.correcta) btn.classList.add('correct');
-                
-                // Desactivar click nativo si ya contestó en modo instante
-                if(!isEnd && q.userAnswer) btn.disabled = true;
-                
-                if (!q.userAnswer) btn.onclick = () => handleSelection(btn, l.toUpperCase(), q.correcta);
+                if (isEnd) {
+                    // MODO SIMULACRO: Se puede cambiar siempre
+                    if (q.userAnswer === l.toUpperCase()) btn.classList.add('selected');
+                    btn.onclick = () => handleSelection(btn, l.toUpperCase(), q.correcta);
+                } else {
+                    // MODO INSTANTÁNEO: Bloquea al responder
+                    if (q.userAnswer) {
+                        btn.disabled = true; // Botón inactivo visualmente y a clics
+                        if (q.userAnswer === l.toUpperCase()) {
+                            btn.classList.add(q.userAnswer === q.correcta ? 'correct' : 'wrong');
+                        }
+                        if (l.toUpperCase() === q.correcta) {
+                            btn.classList.add('correct');
+                        }
+                    } else {
+                        btn.onclick = () => handleSelection(btn, l.toUpperCase(), q.correcta);
+                    }
+                }
                 optsDiv.appendChild(btn);
             });
             document.getElementById('btn-next').disabled = !q.userAnswer;
         }
 
         function handleSelection(btn, letter, correct) {
-            const q = currentTest.questions[currentTest.currentIndex]; q.userAnswer = letter;
+            const q = currentTest.questions[currentTest.currentIndex]; 
+            q.userAnswer = letter;
+            
             if (appSettings.correctionMode === 'instant') {
-                if (letter === correct) { btn.classList.add('correct'); currentTest.correctAnswers++; }
-                else { btn.classList.add('wrong'); document.querySelectorAll('.option-btn').forEach(b => { if(b.innerText.startsWith(correct)) b.classList.add('correct'); }); }
+                // Aislamos el bloqueo a los botones del test únicamente
+                const buttons = document.querySelectorAll('#test-options .option-btn');
+                buttons.forEach(b => b.disabled = true);
                 
-                // Deshabilitamos los botones visualmente pero sin usar pointer-events none
-                document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+                if (letter === correct) { 
+                    btn.classList.add('correct'); 
+                    currentTest.correctAnswers++; 
+                } else { 
+                    btn.classList.add('wrong'); 
+                    buttons.forEach(b => { if(b.innerText.startsWith(correct)) b.classList.add('correct'); }); 
+                }
             } else {
-                document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+                // Aislamos el limpiado a los botones del test
+                const buttons = document.querySelectorAll('#test-options .option-btn');
+                buttons.forEach(b => b.classList.remove('selected'));
                 btn.classList.add('selected');
             }
             document.getElementById('btn-next').disabled = false;
