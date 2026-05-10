@@ -35,6 +35,8 @@
         .btn-outline:hover { background: var(--bg-color); }
         .btn-sm { padding: 8px 16px; font-size: 14px; }
         .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-icon-only { padding: 8px; background: transparent; color: var(--text-muted); border: none; cursor: pointer; transition: 0.2s; border-radius: 8px; }
+        .btn-icon-only:hover { background: var(--bg-color); color: var(--primary); }
 
         #ota-alert { display: none; background: var(--success); color: white; padding: 12px; border-radius: 10px; margin-bottom: 20px; text-align: center; font-weight: 600; cursor: pointer; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
@@ -91,7 +93,13 @@
             </div>
 
             <div class="card" style="border-left: 5px solid var(--primary);">
-                <h3 style="color: var(--primary);"><i data-lucide="zap"></i> Calentamiento</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="color: var(--primary); margin: 0;"><i data-lucide="zap"></i> Calentamiento</h3>
+                    <button class="btn-icon-only" onclick="loadMinigame()" title="Cambiar pregunta">
+                        <i data-lucide="refresh-cw"></i>
+                    </button>
+                </div>
+                
                 <p id="random-question-text" style="margin-bottom: 15px; font-style: italic; color: var(--text-muted);">Cargando preguntas reales de GitHub...</p>
                 <div id="random-options"></div>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
@@ -205,9 +213,21 @@
                     <input type="number" id="set-time" value="60" style="width:100%; padding:12px; border:1px solid var(--border); border-radius:8px;">
                 </div>
                 <button class="btn" style="width: 100%; margin-top: 20px;" onclick="saveSettings()">Guardar</button>
+                
                 <hr style="margin: 30px 0; border: none; border-top: 1px solid var(--border);">
-                <h3>Sincronización OTT</h3>
-                <button class="btn btn-outline" style="width: 100%; color: var(--success); border-color: var(--success);" onclick="forceOTAUpdate()">Actualizar App <i data-lucide="refresh-cw"></i></button>
+                
+                <h3><i data-lucide="database"></i> Datos y Backup</h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Exporta tu progreso (historial y marcadores) para no perderlo o impórtalo en otro dispositivo.</p>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-outline btn-sm" style="flex:1" onclick="exportBackup()"><i data-lucide="download"></i> Exportar</button>
+                    <button class="btn btn-outline btn-sm" style="flex:1" onclick="document.getElementById('import-file').click()"><i data-lucide="upload"></i> Importar</button>
+                    <input type="file" id="import-file" style="display:none" accept=".json" onchange="importBackup(event)">
+                </div>
+
+                <hr style="margin: 30px 0; border: none; border-top: 1px solid var(--border);">
+                
+                <h3><i data-lucide="refresh-cw"></i> Sincronización OTT</h3>
+                <button class="btn btn-outline" style="width: 100%; color: var(--success); border-color: var(--success);" onclick="forceOTAUpdate()">Actualizar App <i data-lucide="download-cloud"></i></button>
             </div>
             <button class="btn btn-outline" style="width: 100%;" onclick="showScreen('screen-home')">Volver</button>
         </div>
@@ -272,13 +292,12 @@
                 const btn = document.createElement('button');
                 btn.className = 'option-btn';
                 btn.innerText = `${l.toUpperCase()}) ${q[l]}`;
-                btn.disabled = false; // Nos aseguramos de que empiece habilitado
+                btn.disabled = false; 
                 
                 btn.onclick = () => {
                     if(minigameAnswered) return; 
                     minigameAnswered = true;
                     
-                    // Bloqueamos los botones SOLO en el div del minijuego
                     document.querySelectorAll('#random-options .option-btn').forEach(b => b.disabled = true);
                     
                     if (l.toUpperCase() === q.correcta) {
@@ -287,7 +306,6 @@
                     } else {
                         btn.classList.add('wrong');
                         document.getElementById('random-feedback').innerText = `Error. Era la ${q.correcta} ❌`;
-                        // Mostramos la correcta
                         Array.from(opts.children).forEach(b => {
                             if(b.innerText.startsWith(q.correcta)) b.classList.add('correct');
                         });
@@ -421,13 +439,11 @@
                 btn.innerText = `${l.toUpperCase()}) ${q[l]}`;
                 
                 if (isEnd) {
-                    // MODO SIMULACRO: Se puede cambiar siempre
                     if (q.userAnswer === l.toUpperCase()) btn.classList.add('selected');
                     btn.onclick = () => handleSelection(btn, l.toUpperCase(), q.correcta);
                 } else {
-                    // MODO INSTANTÁNEO: Bloquea al responder
                     if (q.userAnswer) {
-                        btn.disabled = true; // Botón inactivo visualmente y a clics
+                        btn.disabled = true; 
                         if (q.userAnswer === l.toUpperCase()) {
                             btn.classList.add(q.userAnswer === q.correcta ? 'correct' : 'wrong');
                         }
@@ -448,7 +464,6 @@
             q.userAnswer = letter;
             
             if (appSettings.correctionMode === 'instant') {
-                // Aislamos el bloqueo a los botones del test únicamente
                 const buttons = document.querySelectorAll('#test-options .option-btn');
                 buttons.forEach(b => b.disabled = true);
                 
@@ -460,7 +475,6 @@
                     buttons.forEach(b => { if(b.innerText.startsWith(correct)) b.classList.add('correct'); }); 
                 }
             } else {
-                // Aislamos el limpiado a los botones del test
                 const buttons = document.querySelectorAll('#test-options .option-btn');
                 buttons.forEach(b => b.classList.remove('selected'));
                 btn.classList.add('selected');
@@ -626,12 +640,48 @@
             }
         }
 
+        // --- EXPORTAR E IMPORTAR (BACKUP) ---
+        function exportBackup() {
+            const data = { 
+                log: activityLog, 
+                settings: appSettings,
+                bookmarks: bookmarkedQuestions
+            };
+            const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'testaruda_backup.json'; a.click();
+        }
+
+        function importBackup(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    activityLog = data.log || [];
+                    appSettings = data.settings || appSettings;
+                    bookmarkedQuestions = data.bookmarks || [];
+                    
+                    localStorage.setItem('testaruda_log', JSON.stringify(activityLog));
+                    localStorage.setItem('testaruda_settings', JSON.stringify(appSettings));
+                    localStorage.setItem('testaruda_bookmarks', JSON.stringify(bookmarkedQuestions));
+                    
+                    alert("Backup importado con éxito.");
+                    location.reload();
+                } catch(err) {
+                    alert("Error al leer el archivo de copia de seguridad.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
         // --- NAVEGACIÓN Y EXTRAS ---
         function showScreen(id) { 
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); 
             document.getElementById(id).classList.add('active'); 
             
-            // Si volvemos a inicio y ya contestamos una de calentamiento, recargamos una nueva
             if(id === 'screen-home' && minigameAnswered) {
                 loadMinigame();
             }
