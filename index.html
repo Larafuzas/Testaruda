@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
         /* VARIABLES DE DISEÑO */
@@ -39,15 +40,12 @@
         .card { background: var(--card-bg); border-radius: var(--radius); padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-bottom: 20px; border: 1px solid var(--border); }
         h1, h2, h3 { font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
         
-        .btn { background-color: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
+        .btn { background-color: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; justify-content: center; }
         .btn:hover { background-color: var(--primary-hover); }
         .btn-outline { background: transparent; color: var(--text-main); border: 1px solid var(--border); }
         .btn-outline:hover { background: var(--bg-color); }
         .btn-sm { padding: 8px 16px; font-size: 14px; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        /* Alerta OTA */
-        #ota-alert { display: none; background-color: var(--success); color: white; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: 600; cursor: pointer; }
 
         /* Opciones de Test */
         .minigame { border-left: 4px solid var(--primary); }
@@ -57,31 +55,31 @@
         .option-btn.correct { background: #D1FAE5; border-color: var(--success); color: #065F46; }
         .option-btn.wrong { background: #FEE2E2; border-color: var(--danger); color: #991B1B; }
 
-        /* Formularios */
+        /* Formularios y Árboles */
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-muted); }
         input[type="number"], select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-family: var(--font); font-size: 15px; background: white; }
-
-        /* Árbol de Temas */
         .theme-group { margin-bottom: 16px; }
         .theme-title { font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 8px; background: #F3F4F6; border-radius: 6px; }
         .csv-list { margin-left: 24px; margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
 
-        /* Varios */
+        /* Componentes de Test y Revisión */
         .test-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-weight: 600; }
         .timer { display: flex; align-items: center; gap: 6px; color: var(--danger); font-variant-numeric: tabular-nums; }
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid var(--border); }
         .history-item:last-child { border-bottom: none; }
         .score-badge { background: var(--primary); color: white; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
+        
+        .review-q { margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px dashed var(--border); }
+        .review-q:last-child { border-bottom: none; }
+        .r-option { margin: 4px 0; padding: 8px; border-radius: 6px; font-size: 14px; }
+        .r-correct { background: #D1FAE5; color: #065F46; font-weight: 600; }
+        .r-wrong { background: #FEE2E2; color: #991B1B; text-decoration: line-through; }
     </style>
 </head>
 <body>
 
     <div id="app">
-        <div id="ota-alert" onclick="window.location.reload(true)">
-            <i data-lucide="refresh-cw"></i> ¡Nueva actualización disponible! Toca para actualizar Testaruda.
-        </div>
-
         <div id="screen-home" class="screen active">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                 <h1 style="color: var(--primary);"><i data-lucide="brain"></i> Testaruda</h1>
@@ -95,7 +93,10 @@
                 <h3 style="color: var(--primary);"><i data-lucide="zap"></i> Calentamiento</h3>
                 <p id="random-question-text" style="margin-bottom: 16px; font-size: 16px;">Cargando pregunta...</p>
                 <div id="random-options"></div>
-                <p id="random-feedback" style="margin-top: 12px; font-weight: 600; font-size: 14px; display: none;"></p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+                    <p id="random-feedback" style="font-weight: 600; font-size: 14px; display: none; margin: 0;"></p>
+                    <button id="btn-next-random" class="btn btn-sm btn-outline" style="display: none;" onclick="loadMinigame()">Otra pregunta <i data-lucide="refresh-cw" style="width: 14px;"></i></button>
+                </div>
             </div>
 
             <div class="card" style="text-align: center; padding: 40px 20px;">
@@ -127,7 +128,7 @@
 
                 <div style="display: flex; gap: 12px; margin-top: 24px;">
                     <button class="btn btn-outline" onclick="showScreen('screen-home')">Volver</button>
-                    <button class="btn" style="flex: 1; justify-content: center;" onclick="startTest()">Empezar Test</button>
+                    <button class="btn" style="flex: 1;" onclick="startTest()">Empezar Test</button>
                 </div>
             </div>
         </div>
@@ -144,8 +145,13 @@
             </div>
             
             <div style="display: flex; justify-content: space-between; margin-top: 20px;">
-                <button class="btn btn-outline" style="color: var(--danger); border-color: var(--danger);" onclick="abandonTest()">Abandonar</button>
-                <button class="btn" onclick="nextQuestion()" id="btn-next" disabled>Siguiente <i data-lucide="chevron-right"></i></button>
+                <div>
+                    <button class="btn btn-outline" style="color: var(--danger); border-color: var(--danger);" onclick="abandonTest()">Abandonar</button>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-outline" id="btn-prev" onclick="prevQuestion()" style="display: none;"><i data-lucide="chevron-left"></i> Anterior</button>
+                    <button class="btn" onclick="nextQuestion()" id="btn-next" disabled>Siguiente <i data-lucide="chevron-right"></i></button>
+                </div>
             </div>
         </div>
 
@@ -154,8 +160,26 @@
                 <h2><i data-lucide="award"></i> Resultados del Test</h2>
                 <div style="font-size: 48px; font-weight: 600; color: var(--primary); margin: 20px 0;" id="result-score">--/--</div>
                 <p id="result-stats" style="color: var(--text-muted); margin-bottom: 24px;">Has tardado X minutos.</p>
-                <button class="btn" onclick="showScreen('screen-home')"><i data-lucide="home"></i> Volver al Inicio</button>
+                
+                <div style="display: flex; flex-direction: column; gap: 12px; max-width: 300px; margin: 0 auto;">
+                    <button class="btn btn-outline" id="btn-review" onclick="showScreen('screen-review')"><i data-lucide="search"></i> Revisar examen</button>
+                    <button class="btn" onclick="showScreen('screen-home')"><i data-lucide="home"></i> Volver al Inicio</button>
+                </div>
             </div>
+        </div>
+
+        <div id="screen-review" class="screen">
+            <div class="test-header">
+                <h2><i data-lucide="check-square"></i> Revisión del Test</h2>
+                <button class="btn btn-outline btn-sm" onclick="showScreen('screen-results')">Volver</button>
+            </div>
+            
+            <div class="card" id="pdf-content">
+                <div id="review-container">
+                    </div>
+            </div>
+            
+            <button class="btn" style="width: 100%;" onclick="exportToPDF()"><i data-lucide="download"></i> Guardar como PDF</button>
         </div>
 
         <div id="screen-history" class="screen">
@@ -169,7 +193,6 @@
         <div id="screen-settings" class="screen">
             <h2><i data-lucide="settings"></i> Ajustes</h2>
             <div class="card">
-                
                 <div class="form-group">
                     <label><i data-lucide="check-circle" style="width: 16px; display: inline;"></i> Modo de corrección</label>
                     <select id="set-correction">
@@ -177,26 +200,22 @@
                         <option value="end">Al finalizar el test (simulacro real)</option>
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label><i data-lucide="clock" style="width: 16px; display: inline;"></i> Tiempo por pregunta (segundos)</label>
                     <input type="number" id="set-time" value="60">
                 </div>
+                <button class="btn" style="width: 100%;" onclick="saveSettings()">Guardar Ajustes</button>
                 
-                <button class="btn" style="width: 100%; justify-content: center; margin-bottom: 24px;" onclick="saveSettings()">Guardar Ajustes</button>
-                
-                <hr style="border: none; border-top: 1px solid var(--border); margin-bottom: 24px;">
+                <hr style="border: none; border-top: 1px solid var(--border); margin: 24px 0;">
                 
                 <h3 style="font-size: 16px;"><i data-lucide="database"></i> Copia de Seguridad</h3>
-                <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 16px;">Exporta tu progreso para no perderlo o impórtalo en otro dispositivo.</p>
-                
-                <div style="display: flex; gap: 12px;">
-                    <button class="btn btn-outline" style="flex: 1; justify-content: center;" onclick="exportData()"><i data-lucide="download"></i> Exportar</button>
-                    <button class="btn btn-outline" style="flex: 1; justify-content: center;" onclick="document.getElementById('import-file').click()"><i data-lucide="upload"></i> Importar</button>
+                <div style="display: flex; gap: 12px; margin-top:16px;">
+                    <button class="btn btn-outline" style="flex: 1;" onclick="exportData()"><i data-lucide="download"></i> Exportar</button>
+                    <button class="btn btn-outline" style="flex: 1;" onclick="document.getElementById('import-file').click()"><i data-lucide="upload"></i> Importar</button>
                     <input type="file" id="import-file" style="display: none;" accept=".json" onchange="importData(event)">
                 </div>
             </div>
-            <button class="btn btn-outline" style="width: 100%; justify-content: center;" onclick="showScreen('screen-home')">Volver al Inicio</button>
+            <button class="btn btn-outline" style="width: 100%;" onclick="showScreen('screen-home')">Volver al Inicio</button>
         </div>
 
     </div>
@@ -204,7 +223,6 @@
     <script>
         lucide.createIcons();
 
-        const GITHUB_REPO = 'tu-usuario/tu-repo'; 
         let appSettings = { timePerQuestion: 60, correctionMode: 'instant' };
         let timerInterval;
         let timeRemaining = 0;
@@ -223,6 +241,7 @@
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
             if(screenId === 'screen-history') renderHistory();
+            if(screenId === 'screen-review') renderReview();
         }
 
         function toggleTheme(id) {
@@ -237,13 +256,14 @@
             showScreen('screen-home');
         }
 
-        // -------- TEST -------- //
+        // -------- LÓGICA DEL TEST -------- //
         function startTest() {
+            // Simulamos base de preguntas
             currentTest.questions = [
-                { id: 1, pregunta: "La Constitución Española fue sancionada el:", a: "29 de diciembre de 1978", b: "27 de diciembre de 1978", c: "6 de diciembre de 1978", d: "31 de octubre de 1978", correcta: "B" },
-                { id: 2, pregunta: "El Estado de Derecho se manifiesta en:", a: "Garantía del principio de legalidad", b: "Respeto a los derechos fundamentales", c: "Sometimiento de la Administración al ordenamiento jurídico", d: "Todas son correctas", correcta: "D" }
+                { id: 1, pregunta: "La Constitución Española fue sancionada el:", a: "29 de diciembre de 1978", b: "27 de diciembre de 1978", c: "6 de diciembre de 1978", d: "31 de octubre de 1978", correcta: "C" },
+                { id: 2, pregunta: "El Estado de Derecho se manifiesta en:", a: "Garantía del principio de legalidad", b: "Respeto a los derechos fundamentales", c: "Sometimiento de la Administración al ordenamiento jurídico", d: "Todas son correctas", correcta: "D" },
+                { id: 3, pregunta: "El Título III está dedicado a:", a: "La Corona", b: "Las Cortes Generales", c: "El Gobierno", d: "Economía y Hacienda", correcta: "B" }
             ];
-            // Limpiamos respuestas previas
             currentTest.questions.forEach(q => q.userAnswer = null);
             currentTest.currentIndex = 0;
             currentTest.correctAnswers = 0;
@@ -257,9 +277,22 @@
 
         function renderTestQuestion() {
             let q = currentTest.questions[currentTest.currentIndex];
+            let isEndMode = (appSettings.correctionMode === 'end');
+            
             document.getElementById('test-progress').innerText = `Pregunta ${currentTest.currentIndex + 1} de ${currentTest.questions.length}`;
             document.getElementById('question-text').innerText = q.pregunta;
             
+            // Lógica de botones de navegación (Anterior / Siguiente / Finalizar)
+            document.getElementById('btn-prev').style.display = (isEndMode && currentTest.currentIndex > 0) ? 'inline-flex' : 'none';
+            
+            let btnNext = document.getElementById('btn-next');
+            if(currentTest.currentIndex === currentTest.questions.length - 1) {
+                btnNext.innerHTML = 'Finalizar Test <i data-lucide="check-circle"></i>';
+            } else {
+                btnNext.innerHTML = 'Siguiente <i data-lucide="chevron-right"></i>';
+            }
+            lucide.createIcons();
+
             const optionsDiv = document.getElementById('test-options');
             optionsDiv.innerHTML = '';
             
@@ -268,31 +301,43 @@
                 btn.className = 'option-btn';
                 btn.innerText = `${letter.toUpperCase()}) ${q[letter]}`;
                 
-                // Si estamos volviendo atrás o marcando en modo "al final", pintamos la que habíamos seleccionado
-                if (q.userAnswer === letter.toUpperCase() && appSettings.correctionMode === 'end') {
+                // Si estamos navegando atrás y ya hay respuesta guardada
+                if (q.userAnswer === letter.toUpperCase() && isEndMode) {
                     btn.classList.add('selected');
                 }
-
-                btn.onclick = () => selectTestOption(btn, letter.toUpperCase(), q.correcta);
+                
+                // Si estamos en modo instantáneo y la pregunta ya se respondió (al ir atrás no se puede, pero por seguridad)
+                if (!isEndMode && q.userAnswer) {
+                     btn.style.pointerEvents = 'none';
+                     if (q.userAnswer === letter.toUpperCase()) {
+                         btn.classList.add(q.userAnswer === q.correcta ? 'correct' : 'wrong');
+                     }
+                     if (letter.toUpperCase() === q.correcta && q.userAnswer !== q.correcta) {
+                         btn.classList.add('correct');
+                     }
+                } else {
+                    btn.onclick = () => selectTestOption(btn, letter.toUpperCase(), q.correcta);
+                }
+                
                 optionsDiv.appendChild(btn);
             });
             
-            // Si ya hay respuesta elegida (en modo end), habilitamos botón siguiente
-            document.getElementById('btn-next').disabled = (appSettings.correctionMode === 'end' && !q.userAnswer) && (appSettings.correctionMode === 'instant');
+            // Habilitar "Siguiente" si ya hay respuesta (para navegación), sino deshabilitar
+            btnNext.disabled = (isEndMode && !q.userAnswer) || (!isEndMode && !q.userAnswer);
+            if (!isEndMode) btnNext.disabled = !q.userAnswer; // En instantáneo bloquea hasta responder
         }
 
         function selectTestOption(btn, selected, correct) {
             const buttons = document.querySelectorAll('#test-options .option-btn');
             
             if (appSettings.correctionMode === 'end') {
-                // Modo simulacro: Permite cambiar de respuesta
                 buttons.forEach(b => b.classList.remove('selected'));
                 btn.classList.add('selected');
                 currentTest.questions[currentTest.currentIndex].userAnswer = selected;
                 document.getElementById('btn-next').disabled = false;
             } else {
-                // Modo instantáneo: Bloquea y corrige
                 buttons.forEach(b => b.style.pointerEvents = 'none');
+                currentTest.questions[currentTest.currentIndex].userAnswer = selected;
                 if(selected === correct) {
                     btn.classList.add('correct');
                     currentTest.correctAnswers++;
@@ -304,16 +349,26 @@
             }
         }
 
+        function prevQuestion() {
+            if(currentTest.currentIndex > 0) {
+                currentTest.currentIndex--;
+                renderTestQuestion();
+            }
+        }
+
         function nextQuestion() {
-            currentTest.currentIndex++;
-            if(currentTest.currentIndex >= currentTest.questions.length) endTest();
-            else renderTestQuestion();
+            if(currentTest.currentIndex >= currentTest.questions.length - 1) {
+                endTest();
+            } else {
+                currentTest.currentIndex++;
+                renderTestQuestion();
+            }
         }
 
         function endTest() {
             clearInterval(timerInterval);
             
-            // Si el modo es "al final", calculamos la nota ahora
+            // Calcular nota si es modo final
             if (appSettings.correctionMode === 'end') {
                 currentTest.correctAnswers = 0;
                 currentTest.questions.forEach(q => {
@@ -334,6 +389,10 @@
 
             document.getElementById('result-score').innerText = `${currentTest.correctAnswers} / ${currentTest.questions.length}`;
             document.getElementById('result-stats').innerText = `Has tardado ${mins} minutos y ${secs} segundos.`;
+            
+            // Mostrar u ocultar botón de revisión según el modo
+            document.getElementById('btn-review').style.display = (appSettings.correctionMode === 'end') ? 'inline-flex' : 'none';
+
             showScreen('screen-results');
         }
 
@@ -349,9 +408,7 @@
             clearInterval(timerInterval);
             updateTimerDisplay();
             timerInterval = setInterval(() => {
-                timeRemaining--;
-                totalTimeSpent++;
-                updateTimerDisplay();
+                timeRemaining--; totalTimeSpent++; updateTimerDisplay();
                 if(timeRemaining <= 0) { alert("¡Tiempo agotado!"); endTest(); }
             }, 1000);
         }
@@ -360,6 +417,48 @@
             let s = (Math.max(timeRemaining, 0) % 60).toString().padStart(2, '0');
             document.getElementById('test-timer').innerHTML = `<i data-lucide="clock"></i> ${m}:${s}`;
             lucide.createIcons();
+        }
+
+        // -------- REVISIÓN Y EXPORTAR A PDF -------- //
+        function renderReview() {
+            const container = document.getElementById('review-container');
+            container.innerHTML = '';
+            
+            currentTest.questions.forEach((q, index) => {
+                let div = document.createElement('div');
+                div.className = 'review-q';
+                
+                let html = `<strong>${index + 1}. ${q.pregunta}</strong><div style="margin-top:8px;">`;
+                
+                ['a', 'b', 'c', 'd'].forEach(letter => {
+                    let optClass = 'r-option';
+                    let L = letter.toUpperCase();
+                    
+                    if (L === q.correcta) optClass += ' r-correct';
+                    else if (L === q.userAnswer && q.userAnswer !== q.correcta) optClass += ' r-wrong';
+                    
+                    let mark = '';
+                    if(L === q.userAnswer) mark = ' <strong>(Tu respuesta)</strong>';
+                    
+                    html += `<div class="${optClass}">${L}) ${q[letter]} ${mark}</div>`;
+                });
+                
+                html += `</div>`;
+                div.innerHTML = html;
+                container.appendChild(div);
+            });
+        }
+
+        function exportToPDF() {
+            const element = document.getElementById('pdf-content');
+            const opt = {
+                margin:       10,
+                filename:     'Testaruda-Revision.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
         }
 
         // -------- HISTORIAL Y BACKUP -------- //
@@ -397,13 +496,23 @@
             reader.readAsText(file);
         }
 
-        // -------- MINIJUEGO -------- //
+        // -------- MINIJUEGO INFINITO -------- //
+        const poolMinijuego = [
+            { pregunta: "¿De cuántos artículos consta la Constitución Española?", a: "166", b: "167", c: "168", d: "169", correcta: "D" },
+            { pregunta: "¿Qué título de la Constitución está dedicado al Tribunal Constitucional?", a: "Título VI", b: "Título VII", c: "Título VIII", d: "Título IX", correcta: "D" },
+            { pregunta: "La Constitución Española de 1978 entró en vigor:", a: "Al día siguiente de su publicación en el BOE.", b: "El 28 de diciembre de 1978.", c: "El 29 de diciembre de 1978.", d: "Al día siguiente de ser aprobada.", correcta: "C" },
+            { pregunta: "¿Cuántas Disposiciones adicionales tiene la Constitución?", a: "Cuatro", b: "Seis", c: "Nueve", d: "Diez", correcta: "A" }
+        ];
+
         function loadMinigame() {
-            let q = { pregunta: "¿De cuántos artículos consta la Constitución Española?", a: "166", b: "167", c: "168", d: "169", correcta: "D" };
+            let q = poolMinijuego[Math.floor(Math.random() * poolMinijuego.length)];
+            
             document.getElementById('random-question-text').innerText = q.pregunta;
             const optionsDiv = document.getElementById('random-options');
             optionsDiv.innerHTML = '';
+            
             document.getElementById('random-feedback').style.display = 'none';
+            document.getElementById('btn-next-random').style.display = 'none';
 
             ['a', 'b', 'c', 'd'].forEach(letter => {
                 let btn = document.createElement('button');
@@ -415,9 +524,10 @@
                         document.getElementById('random-feedback').innerText = "¡Correcto! ✅"; document.getElementById('random-feedback').style.color = "var(--success)";
                     } else {
                         btn.classList.add('wrong');
-                        document.getElementById('random-feedback').innerText = `Fallaste ❌. La correcta era la ${q.correcta}.`; document.getElementById('random-feedback').style.color = "var(--danger)";
+                        document.getElementById('random-feedback').innerText = `Fallaste ❌. Era la ${q.correcta}.`; document.getElementById('random-feedback').style.color = "var(--danger)";
                     }
                     document.getElementById('random-feedback').style.display = 'block';
+                    document.getElementById('btn-next-random').style.display = 'inline-flex';
                     optionsDiv.querySelectorAll('.option-btn').forEach(b => b.style.pointerEvents = 'none');
                 };
                 optionsDiv.appendChild(btn);
