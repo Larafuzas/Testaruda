@@ -27,102 +27,50 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        body {
-            font-family: var(--font);
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            display: flex;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
+        body { font-family: var(--font); background-color: var(--bg-color); color: var(--text-main); display: flex; justify-content: center; min-height: 100vh; padding: 20px; }
+        #app { width: 100%; max-width: 800px; position: relative; }
 
-        #app {
-            width: 100%;
-            max-width: 800px;
-            position: relative;
-        }
-
-        /* Utilidades de Pantallas */
+        /* Pantallas */
         .screen { display: none; animation: fadeIn 0.3s ease; }
         .screen.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Tarjetas */
-        .card {
-            background: var(--card-bg);
-            border-radius: var(--radius);
-            padding: 24px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            margin-bottom: 20px;
-            border: 1px solid var(--border);
-        }
-
+        /* Tarjetas y Botones */
+        .card { background: var(--card-bg); border-radius: var(--radius); padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-bottom: 20px; border: 1px solid var(--border); }
         h1, h2, h3 { font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
         
-        /* Botones */
-        .btn {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: 0.2s;
-        }
+        .btn { background-color: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
         .btn:hover { background-color: var(--primary-hover); }
         .btn-outline { background: transparent; color: var(--text-main); border: 1px solid var(--border); }
         .btn-outline:hover { background: var(--bg-color); }
         .btn-sm { padding: 8px 16px; font-size: 14px; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         /* Alerta OTA */
-        #ota-alert {
-            display: none;
-            background-color: var(--success);
-            color: white;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-            font-weight: 600;
-            cursor: pointer;
-        }
+        #ota-alert { display: none; background-color: var(--success); color: white; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: 600; cursor: pointer; }
 
-        /* Minijuego */
+        /* Opciones de Test */
         .minigame { border-left: 4px solid var(--primary); }
-        .option-btn {
-            display: block; width: 100%; text-align: left; padding: 12px 16px; margin-bottom: 8px;
-            border: 1px solid var(--border); border-radius: 8px; background: var(--card-bg);
-            cursor: pointer; transition: 0.2s; font-size: 15px;
-        }
+        .option-btn { display: block; width: 100%; text-align: left; padding: 12px 16px; margin-bottom: 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--card-bg); cursor: pointer; transition: 0.2s; font-size: 15px; }
         .option-btn:hover { border-color: var(--primary); background: #EEF2FF; }
+        .option-btn.selected { background: #E0E7FF; border-color: var(--primary); color: var(--primary-hover); font-weight: 600; }
         .option-btn.correct { background: #D1FAE5; border-color: var(--success); color: #065F46; }
         .option-btn.wrong { background: #FEE2E2; border-color: var(--danger); color: #991B1B; }
-
-        /* Estructura Árbol de Temas */
-        .theme-group { margin-bottom: 16px; }
-        .theme-title { font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 8px; background: #F3F4F6; border-radius: 6px; }
-        .csv-list { margin-left: 24px; margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
 
         /* Formularios */
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-muted); }
-        input[type="number"] { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; }
+        input[type="number"], select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-family: var(--font); font-size: 15px; background: white; }
 
-        /* Cabecera del Test */
+        /* Árbol de Temas */
+        .theme-group { margin-bottom: 16px; }
+        .theme-title { font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 8px; background: #F3F4F6; border-radius: 6px; }
+        .csv-list { margin-left: 24px; margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+
+        /* Varios */
         .test-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-weight: 600; }
         .timer { display: flex; align-items: center; gap: 6px; color: var(--danger); font-variant-numeric: tabular-nums; }
-
-        /* Historial */
-        .history-item {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 12px; border-bottom: 1px solid var(--border);
-        }
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid var(--border); }
         .history-item:last-child { border-bottom: none; }
         .score-badge { background: var(--primary); color: white; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
     </style>
@@ -130,7 +78,6 @@
 <body>
 
     <div id="app">
-        
         <div id="ota-alert" onclick="window.location.reload(true)">
             <i data-lucide="refresh-cw"></i> ¡Nueva actualización disponible! Toca para actualizar Testaruda.
         </div>
@@ -216,18 +163,26 @@
                 <h2><i data-lucide="bar-chart-2"></i> Mi Progreso</h2>
                 <button class="btn btn-outline btn-sm" onclick="showScreen('screen-home')">Volver</button>
             </div>
-            <div class="card" id="history-container">
-                <p style="color: var(--text-muted); text-align: center;">Aún no hay tests registrados.</p>
-            </div>
+            <div class="card" id="history-container"></div>
         </div>
 
         <div id="screen-settings" class="screen">
-            <h2><i data-lucide="settings"></i> Ajustes y Backup</h2>
+            <h2><i data-lucide="settings"></i> Ajustes</h2>
             <div class="card">
+                
                 <div class="form-group">
-                    <label>Tiempo por pregunta (segundos)</label>
+                    <label><i data-lucide="check-circle" style="width: 16px; display: inline;"></i> Modo de corrección</label>
+                    <select id="set-correction">
+                        <option value="instant">Al instante (pregunta a pregunta)</option>
+                        <option value="end">Al finalizar el test (simulacro real)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label><i data-lucide="clock" style="width: 16px; display: inline;"></i> Tiempo por pregunta (segundos)</label>
                     <input type="number" id="set-time" value="60">
                 </div>
+                
                 <button class="btn" style="width: 100%; justify-content: center; margin-bottom: 24px;" onclick="saveSettings()">Guardar Ajustes</button>
                 
                 <hr style="border: none; border-top: 1px solid var(--border); margin-bottom: 24px;">
@@ -249,9 +204,8 @@
     <script>
         lucide.createIcons();
 
-        // VARIABLES Y CONFIGURACIÓN BASE
-        const GITHUB_REPO = 'tu-usuario/tu-repo'; // Fijo en el código. No se pide en ajustes.
-        let appSettings = { timePerQuestion: 60 };
+        const GITHUB_REPO = 'tu-usuario/tu-repo'; 
+        let appSettings = { timePerQuestion: 60, correctionMode: 'instant' };
         let timerInterval;
         let timeRemaining = 0;
         let totalTimeSpent = 0;
@@ -260,11 +214,11 @@
 
         // Inicializar Ajustes
         if(localStorage.getItem('testaruda_settings')) {
-            appSettings = JSON.parse(localStorage.getItem('testaruda_settings'));
-            document.getElementById('set-time').value = appSettings.timePerQuestion;
+            appSettings = Object.assign(appSettings, JSON.parse(localStorage.getItem('testaruda_settings')));
         }
+        document.getElementById('set-time').value = appSettings.timePerQuestion;
+        document.getElementById('set-correction').value = appSettings.correctionMode;
 
-        // Navegación
         function showScreen(screenId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
@@ -278,17 +232,19 @@
 
         function saveSettings() {
             appSettings.timePerQuestion = parseInt(document.getElementById('set-time').value) || 60;
+            appSettings.correctionMode = document.getElementById('set-correction').value;
             localStorage.setItem('testaruda_settings', JSON.stringify(appSettings));
             showScreen('screen-home');
         }
 
-        // -------- LÓGICA DEL TEST -------- //
+        // -------- TEST -------- //
         function startTest() {
             currentTest.questions = [
                 { id: 1, pregunta: "La Constitución Española fue sancionada el:", a: "29 de diciembre de 1978", b: "27 de diciembre de 1978", c: "6 de diciembre de 1978", d: "31 de octubre de 1978", correcta: "B" },
                 { id: 2, pregunta: "El Estado de Derecho se manifiesta en:", a: "Garantía del principio de legalidad", b: "Respeto a los derechos fundamentales", c: "Sometimiento de la Administración al ordenamiento jurídico", d: "Todas son correctas", correcta: "D" }
             ];
-            
+            // Limpiamos respuestas previas
+            currentTest.questions.forEach(q => q.userAnswer = null);
             currentTest.currentIndex = 0;
             currentTest.correctAnswers = 0;
             totalTimeSpent = 0;
@@ -311,24 +267,41 @@
                 let btn = document.createElement('button');
                 btn.className = 'option-btn';
                 btn.innerText = `${letter.toUpperCase()}) ${q[letter]}`;
+                
+                // Si estamos volviendo atrás o marcando en modo "al final", pintamos la que habíamos seleccionado
+                if (q.userAnswer === letter.toUpperCase() && appSettings.correctionMode === 'end') {
+                    btn.classList.add('selected');
+                }
+
                 btn.onclick = () => selectTestOption(btn, letter.toUpperCase(), q.correcta);
                 optionsDiv.appendChild(btn);
             });
-            document.getElementById('btn-next').disabled = true;
+            
+            // Si ya hay respuesta elegida (en modo end), habilitamos botón siguiente
+            document.getElementById('btn-next').disabled = (appSettings.correctionMode === 'end' && !q.userAnswer) && (appSettings.correctionMode === 'instant');
         }
 
         function selectTestOption(btn, selected, correct) {
             const buttons = document.querySelectorAll('#test-options .option-btn');
-            buttons.forEach(b => b.style.pointerEvents = 'none');
-
-            if(selected === correct) {
-                btn.classList.add('correct');
-                currentTest.correctAnswers++;
+            
+            if (appSettings.correctionMode === 'end') {
+                // Modo simulacro: Permite cambiar de respuesta
+                buttons.forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                currentTest.questions[currentTest.currentIndex].userAnswer = selected;
+                document.getElementById('btn-next').disabled = false;
             } else {
-                btn.classList.add('wrong');
-                buttons.forEach(b => { if(b.innerText.startsWith(correct)) b.classList.add('correct'); });
+                // Modo instantáneo: Bloquea y corrige
+                buttons.forEach(b => b.style.pointerEvents = 'none');
+                if(selected === correct) {
+                    btn.classList.add('correct');
+                    currentTest.correctAnswers++;
+                } else {
+                    btn.classList.add('wrong');
+                    buttons.forEach(b => { if(b.innerText.startsWith(correct)) b.classList.add('correct'); });
+                }
+                document.getElementById('btn-next').disabled = false;
             }
-            document.getElementById('btn-next').disabled = false;
         }
 
         function nextQuestion() {
@@ -339,10 +312,18 @@
 
         function endTest() {
             clearInterval(timerInterval);
+            
+            // Si el modo es "al final", calculamos la nota ahora
+            if (appSettings.correctionMode === 'end') {
+                currentTest.correctAnswers = 0;
+                currentTest.questions.forEach(q => {
+                    if (q.userAnswer === q.correcta) currentTest.correctAnswers++;
+                });
+            }
+
             let mins = Math.floor(totalTimeSpent / 60);
             let secs = totalTimeSpent % 60;
             
-            // Guardar en el registro
             activityLog.push({
                 date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(),
                 score: currentTest.correctAnswers,
@@ -374,21 +355,17 @@
                 if(timeRemaining <= 0) { alert("¡Tiempo agotado!"); endTest(); }
             }, 1000);
         }
-
         function updateTimerDisplay() {
-            let m = Math.floor(timeRemaining / 60).toString().padStart(2, '0');
-            let s = (timeRemaining % 60).toString().padStart(2, '0');
+            let m = Math.floor(Math.max(timeRemaining, 0) / 60).toString().padStart(2, '0');
+            let s = (Math.max(timeRemaining, 0) % 60).toString().padStart(2, '0');
             document.getElementById('test-timer').innerHTML = `<i data-lucide="clock"></i> ${m}:${s}`;
             lucide.createIcons();
         }
 
-        // -------- HISTORIAL (Actividad) -------- //
+        // -------- HISTORIAL Y BACKUP -------- //
         function renderHistory() {
             const container = document.getElementById('history-container');
-            if(activityLog.length === 0) {
-                container.innerHTML = '<p style="color: var(--text-muted); text-align: center;">Aún no hay tests registrados.</p>';
-                return;
-            }
+            if(activityLog.length === 0) { container.innerHTML = '<p style="color: var(--text-muted); text-align: center;">Aún no hay tests registrados.</p>'; return; }
             container.innerHTML = activityLog.slice().reverse().map(log => `
                 <div class="history-item">
                     <div>
@@ -400,8 +377,6 @@
             `).join('');
             lucide.createIcons();
         }
-
-        // -------- BACKUP (Exportar / Importar) -------- //
         function exportData() {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(activityLog));
             const dlAnchorElem = document.createElement('a');
@@ -409,7 +384,6 @@
             dlAnchorElem.setAttribute("download", "testaruda_backup.json");
             dlAnchorElem.click();
         }
-
         function importData(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -417,14 +391,8 @@
             reader.onload = function(e) {
                 try {
                     const importedLog = JSON.parse(e.target.result);
-                    if(Array.isArray(importedLog)) {
-                        activityLog = importedLog;
-                        localStorage.setItem('testaruda_log', JSON.stringify(activityLog));
-                        alert("¡Historial restaurado con éxito!");
-                    } else throw new Error("Formato inválido");
-                } catch(err) {
-                    alert("Error al leer el archivo de copia de seguridad.");
-                }
+                    if(Array.isArray(importedLog)) { activityLog = importedLog; localStorage.setItem('testaruda_log', JSON.stringify(activityLog)); alert("¡Historial restaurado con éxito!"); } else throw new Error("Inválido");
+                } catch(err) { alert("Error al leer el archivo de copia de seguridad."); }
             };
             reader.readAsText(file);
         }
@@ -444,12 +412,10 @@
                 btn.onclick = () => {
                     if(letter.toUpperCase() === q.correcta) {
                         btn.classList.add('correct');
-                        document.getElementById('random-feedback').innerText = "¡Correcto! ✅";
-                        document.getElementById('random-feedback').style.color = "var(--success)";
+                        document.getElementById('random-feedback').innerText = "¡Correcto! ✅"; document.getElementById('random-feedback').style.color = "var(--success)";
                     } else {
                         btn.classList.add('wrong');
-                        document.getElementById('random-feedback').innerText = `Fallaste ❌. La correcta era la ${q.correcta}.`;
-                        document.getElementById('random-feedback').style.color = "var(--danger)";
+                        document.getElementById('random-feedback').innerText = `Fallaste ❌. La correcta era la ${q.correcta}.`; document.getElementById('random-feedback').style.color = "var(--danger)";
                     }
                     document.getElementById('random-feedback').style.display = 'block';
                     optionsDiv.querySelectorAll('.option-btn').forEach(b => b.style.pointerEvents = 'none');
@@ -458,21 +424,7 @@
             });
         }
 
-        // -------- ACTUALIZACIONES OTA (Simulador) -------- //
-        function checkOTAUpdates() {
-            // Lógica que conectaremos con la API de Github para ver si hay un nuevo commit
-            // Por ahora, simulamos que a los 5 segundos avisa de una actualización
-            /* setTimeout(() => {
-                document.getElementById('ota-alert').style.display = 'block';
-            }, 5000); 
-            */
-        }
-
-        // Iniciar
-        window.onload = () => {
-            loadMinigame();
-            checkOTAUpdates();
-        };
+        window.onload = () => { loadMinigame(); };
     </script>
 </body>
 </html>
