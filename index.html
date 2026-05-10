@@ -40,12 +40,12 @@
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
 
         .option-btn { display: block; width: 100%; text-align: left; padding: 14px 18px; margin-bottom: 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--card-bg); cursor: pointer; font-size: 15px; transition: 0.2s; }
-        .option-btn:hover { border-color: var(--primary); background: #EEF2FF; }
+        /* Evitar el hover persistente en móviles desactivando hover si ya fue respondida */
+        .option-btn:hover:not(:disabled) { border-color: var(--primary); background: #EEF2FF; }
         .option-btn.selected { background: #E0E7FF; border-color: var(--primary); color: var(--primary-hover); font-weight: 600; border-width: 2px; }
         .option-btn.correct { background: #D1FAE5; border-color: var(--success); color: #065F46; font-weight: 600; }
         .option-btn.wrong { background: #FEE2E2; border-color: var(--danger); color: #991B1B; }
 
-        /* Estilos del Selector de Temas */
         .theme-controls { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 10px; font-size: 13px; font-weight: 600; color: var(--primary); }
         .theme-controls span { cursor: pointer; text-decoration: underline; }
 
@@ -158,7 +158,9 @@
                 <div id="result-score" style="font-size: 56px; font-weight: 700; color: var(--primary); margin: 20px 0;">0/0</div>
                 <p id="result-stats" style="color: var(--text-muted); margin-bottom: 30px;"></p>
                 <div style="display: flex; flex-direction: column; gap: 12px; max-width: 320px; margin: 0 auto;">
-                    <button class="btn btn-outline" style="width: 100%; border: 2px solid var(--primary); color: var(--primary);" onclick="showReviewFromCurrent()"><i data-lucide="search"></i> Revisar Test Completo</button>
+                    <button class="btn btn-outline" style="width: 100%; border: 2px solid var(--primary); color: var(--primary);" onclick="showReviewFromCurrent()">
+                        <i data-lucide="search"></i> Revisar Test Completo
+                    </button>
                     <button class="btn" onclick="showScreen('screen-home')"><i data-lucide="home"></i> Ir al Inicio</button>
                 </div>
             </div>
@@ -222,6 +224,7 @@
         let bookmarkedQuestions = JSON.parse(localStorage.getItem('testaruda_bookmarks')) || [];
         let currentTest = { questions: [], currentIndex: 0, correctAnswers: 0, timer: null };
         let randomPool = []; 
+        let minigameAnswered = false; // Nueva variable para evitar bloqueos CSS
 
         window.onload = () => {
             lucide.createIcons();
@@ -256,6 +259,8 @@
 
         function loadMinigame() {
             if (randomPool.length === 0) return;
+            minigameAnswered = false; // Reseteamos el estado
+
             const q = randomPool[Math.floor(Math.random() * randomPool.length)];
             document.getElementById('random-question-text').innerText = q.pregunta;
             document.getElementById('random-feedback').style.display = 'none';
@@ -268,12 +273,10 @@
                 const btn = document.createElement('button');
                 btn.className = 'option-btn';
                 btn.innerText = `${l.toUpperCase()}) ${q[l]}`;
-                // Aseguramos que siempre sean clicables al cargar
-                btn.style.pointerEvents = 'auto'; 
                 
                 btn.onclick = () => {
-                    // Bloqueamos clics en todas las opciones
-                    document.querySelectorAll('#random-options .option-btn').forEach(b => b.style.pointerEvents = 'none');
+                    if(minigameAnswered) return; // Evitamos clicks extra por JS, no por CSS
+                    minigameAnswered = true;
                     
                     if (l.toUpperCase() === q.correcta) {
                         btn.classList.add('correct');
@@ -281,8 +284,8 @@
                     } else {
                         btn.classList.add('wrong');
                         document.getElementById('random-feedback').innerText = `Error. Era la ${q.correcta} ❌`;
-                        // Mostramos la correcta también
-                        document.querySelectorAll('#random-options .option-btn').forEach(b => {
+                        // Mostramos la correcta
+                        Array.from(opts.children).forEach(b => {
                             if(b.innerText.startsWith(q.correcta)) b.classList.add('correct');
                         });
                     }
@@ -371,7 +374,6 @@
                 const res = await fetch(c.dataset.url);
                 const t = await res.text();
                 const p = Papa.parse(t, { header: true, skipEmptyLines: true });
-                // Inyectamos la categoría a cada pregunta para los marcadores
                 const cat = c.dataset.category;
                 p.data.forEach(q => { q.category = cat; });
                 currentTest.questions.push(...p.data);
@@ -416,6 +418,9 @@
                 if (q.userAnswer === l.toUpperCase()) btn.classList.add(isEnd ? 'selected' : (q.userAnswer === q.correcta ? 'correct' : 'wrong'));
                 if (!isEnd && q.userAnswer && l.toUpperCase() === q.correcta) btn.classList.add('correct');
                 
+                // Desactivar click nativo si ya contestó en modo instante
+                if(!isEnd && q.userAnswer) btn.disabled = true;
+                
                 if (!q.userAnswer) btn.onclick = () => handleSelection(btn, l.toUpperCase(), q.correcta);
                 optsDiv.appendChild(btn);
             });
@@ -427,8 +432,13 @@
             if (appSettings.correctionMode === 'instant') {
                 if (letter === correct) { btn.classList.add('correct'); currentTest.correctAnswers++; }
                 else { btn.classList.add('wrong'); document.querySelectorAll('.option-btn').forEach(b => { if(b.innerText.startsWith(correct)) b.classList.add('correct'); }); }
-                document.querySelectorAll('.option-btn').forEach(b => b.style.pointerEvents = 'none');
-            } else btn.classList.add('selected');
+                
+                // Deshabilitamos los botones visualmente pero sin usar pointer-events none
+                document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+            } else {
+                document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+            }
             document.getElementById('btn-next').disabled = false;
         }
 
@@ -439,9 +449,7 @@
             clearInterval(currentTest.timer);
             if (appSettings.correctionMode === 'end') currentTest.correctAnswers = currentTest.questions.filter(q => q.userAnswer === q.correcta).length;
             
-            // COPIA PROFUNDA DE PREGUNTAS PARA EL HISTORIAL
             const questionsCopy = JSON.parse(JSON.stringify(currentTest.questions));
-            
             const log = { 
                 date: new Date().toLocaleString(), 
                 score: currentTest.correctAnswers, 
@@ -457,15 +465,14 @@
             showScreen('screen-results');
         }
 
-        // --- SISTEMA DE MARCADORES (FAVORITOS) ---
+        // --- MARCADORES ---
         function toggleBookmark() {
             const q = currentTest.questions[currentTest.currentIndex];
             const index = bookmarkedQuestions.findIndex(b => b.pregunta === q.pregunta);
             
             if (index > -1) {
-                bookmarkedQuestions.splice(index, 1); // Quitar
+                bookmarkedQuestions.splice(index, 1);
             } else {
-                // Guardamos una copia limpia (sin la respuesta del usuario de ese momento)
                 const qCopy = {...q};
                 delete qCopy.userAnswer;
                 if(!qCopy.category) qCopy.category = 'General';
@@ -473,7 +480,7 @@
             }
             
             localStorage.setItem('testaruda_bookmarks', JSON.stringify(bookmarkedQuestions));
-            renderQuestion(); // Refrescar estrella
+            renderQuestion(); 
         }
 
         function removeBookmarkFromList(pregunta) {
@@ -491,7 +498,6 @@
                 return;
             }
 
-            // Agrupar por categoría
             const grouped = bookmarkedQuestions.reduce((acc, q) => {
                 acc[q.category] = acc[q.category] || [];
                 acc[q.category].push(q);
@@ -533,13 +539,12 @@
             lucide.createIcons();
         }
 
-        // --- HISTORIAL E INTERACTIVIDAD ---
+        // --- HISTORIAL ---
         function renderHistory() {
             const c = document.getElementById('history-container');
             if (activityLog.length === 0) { c.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted);">Sin registros aún.</div>'; return; }
             
             c.innerHTML = activityLog.slice().reverse().map((e, index) => {
-                // index invertido para encontrar el real en el array original
                 const realIndex = activityLog.length - 1 - index;
                 const hasData = e.questions && e.questions.length > 0;
                 
@@ -547,7 +552,7 @@
                 <div class="history-item" ${hasData ? `onclick="viewPastTest(${realIndex})"` : ''} style="${!hasData ? 'opacity:0.6; cursor:not-allowed;' : ''}">
                     <div>
                         <b>${e.date}</b><br>
-                        <small style="color:var(--text-muted); display:flex; align-items:center; gap:4px;"><i data-lucide="clock" style="width:12px"></i> ${e.time} ${!hasData ? '(Sin datos guardados)' : ''}</small>
+                        <small style="color:var(--text-muted); display:flex; align-items:center; gap:4px;"><i data-lucide="clock" style="width:12px"></i> ${e.time} ${!hasData ? '(Sin datos)' : ''}</small>
                     </div>
                     <div class="score-badge">${e.score}/${e.total}</div>
                 </div>`;
@@ -563,7 +568,7 @@
             }
         }
 
-        // --- REVISIÓN GLOBAL ---
+        // --- REVISIÓN ---
         function showReviewFromCurrent() {
             renderReview(currentTest.questions);
             showScreen('screen-review');
@@ -588,7 +593,6 @@
         }
 
         function closeReview() {
-            // Vuelve a resultados si acabas de hacer un test, o al historial si lo abriste desde ahí
             if(document.getElementById('result-score').innerText !== "0/0" && currentTest.questions.length > 0 && currentTest.currentIndex >= currentTest.questions.length -1) {
                 showScreen('screen-results');
             } else {
@@ -596,20 +600,27 @@
             }
         }
 
-        // --- AUXILIARES ---
+        // --- NAVEGACIÓN Y EXTRAS ---
         function showScreen(id) { 
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); 
             document.getElementById(id).classList.add('active'); 
+            
+            // Si volvemos a inicio y ya contestamos una de calentamiento, recargamos una nueva
+            if(id === 'screen-home' && minigameAnswered) {
+                loadMinigame();
+            }
+
             if(id === 'screen-history') renderHistory(); 
             if(id === 'screen-bookmarks') renderBookmarks();
             lucide.createIcons(); 
         }
+
         function startTimer(s) { let r = s; currentTest.timer = setInterval(() => { r--; updateTimerUI(r); if (r <= 0) { clearInterval(currentTest.timer); finishTest(); } }, 1000); }
         function updateTimerUI(s) { const m = Math.floor(s/60).toString().padStart(2,'0'), sc = (s%60).toString().padStart(2,'0'); document.getElementById('test-timer').innerHTML = `<i data-lucide="clock"></i> ${m}:${sc}`; lucide.createIcons(); }
         function loadSettingsToUI() { document.getElementById('set-correction').value = appSettings.correctionMode; document.getElementById('set-time').value = appSettings.timePerQuestion; }
         function saveSettings() { appSettings.correctionMode = document.getElementById('set-correction').value; appSettings.timePerQuestion = parseInt(document.getElementById('set-time').value); localStorage.setItem('testaruda_settings', JSON.stringify(appSettings)); showScreen('screen-home'); }
         function forceOTAUpdate() { localStorage.removeItem('testaruda_sha'); window.location.reload(true); }
-        async function checkOTAUpdate() { try { const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/commits?path=index.html&per_page=1`), data = await res.json(), latest = data[0].sha, curr = localStorage.getItem('testaruda_sha'); if (curr && curr !== latest) document.getElementById('ota-alert').style.display = 'block'; if (!curr) localStorage.setItem('testaruda_sha', latest); } catch(e){} }
+        async function checkOTAUpdate() { try { const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/commits?path=index.html&per_page=1`); const data = await res.json(); const latest = data[0].sha; const curr = localStorage.getItem('testaruda_sha'); if (curr && curr !== latest) document.getElementById('ota-alert').style.display = 'block'; if (!curr) localStorage.setItem('testaruda_sha', latest); } catch(e){} }
         function exportToPDF() { html2pdf().set({margin:10, filename:'Testaruda_Revision.pdf'}).from(document.getElementById('pdf-content')).save(); }
         function abandonTest() { if(confirm("¿Salir?")) { clearInterval(currentTest.timer); showScreen('screen-home'); } }
     </script>
