@@ -2,517 +2,606 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <title>MSSGs Awtrix</title>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="apple-touch-icon" href="icon.png">
-    <link rel="icon" type="image/png" href="icon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpoTest - larafuzas</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
         :root {
-            --bg-color: #f2f2f7; --card-bg: #ffffff; --text-color: #000000;
-            --text-muted: #8e8e93; --accent: #007aff; --border: #c6c6c8;
-            --danger: #ff3b30; --tab-bg: rgba(248, 248, 248, 0.85); --header-bg: rgba(248, 248, 248, 0.85);
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg-color: #F9FAFB;
+            --card-bg: #FFFFFF;
+            --text-main: #111827;
+            --text-muted: #6B7280;
+            --success: #10B981;
+            --danger: #EF4444;
+            --warning: #F59E0B;
+            --border: #E5E7EB;
+            --radius: 12px;
+            --font: 'Inter', sans-serif;
         }
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg-color: #000000; --card-bg: #1c1c1e; --text-color: #ffffff;
-                --text-muted: #8e8e93; --accent: #0a84ff; --border: #38383a;
-                --tab-bg: rgba(18, 18, 18, 0.85); --header-bg: rgba(18, 18, 18, 0.85);
-            }
-        }
 
-        body { font-family: 'Lato', sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; padding-top: calc(60px + env(safe-area-inset-top)); padding-bottom: calc(80px + env(safe-area-inset-bottom)); -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body { font-family: var(--font); background-color: var(--bg-color); color: var(--text-main); display: flex; justify-content: center; min-height: 100vh; padding: 20px; }
+        #app { width: 100%; max-width: 800px; position: relative; }
+
+        /* Pantallas */
+        .screen { display: none; animation: fadeIn 0.3s ease; }
+        .screen.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Cabecera de pantallas (Botón Atrás) */
+        .top-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+        .back-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 16px; padding: 8px 0; transition: 0.2s; }
+        .back-btn:hover { color: var(--primary); }
+
+        /* Tarjetas */
+        .card { background: var(--card-bg); border-radius: var(--radius); padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-bottom: 20px; border: 1px solid var(--border); }
+        h1, h2, h3 { font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
         
-        .app-header { position: fixed; top: 0; left: 0; right: 0; height: 50px; padding-top: env(safe-area-inset-top); background: var(--header-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; z-index: 50; letter-spacing: 0.5px; }
+        /* Botones */
+        .btn { background-color: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
+        .btn:hover { background-color: var(--primary-hover); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-outline { background: transparent; color: var(--text-main); border: 1px solid var(--border); }
+        .btn-outline:hover { background: var(--bg-color); }
+        .btn-small { padding: 8px 16px; font-size: 14px; }
 
-        .tab-content { display: none; padding: 16px; animation: fadeIn 0.2s ease-in-out; }
-        .tab-content.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
-        .card { background: var(--card-bg); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px; margin-top: 12px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
-        label:first-child { margin-top: 0; }
+        /* Minijuego */
+        .minigame { border-left: 4px solid var(--warning); }
         
-        input[type="text"], input[type="number"], input[type="password"], input[type="url"], select { font-family: 'Lato', sans-serif; width: 100%; padding: 12px; background: var(--bg-color); border: 1px solid var(--border); color: var(--text-color); border-radius: 8px; box-sizing: border-box; font-size: 1rem; appearance: none; }
-        input:focus, select:focus { outline: none; border-color: var(--accent); }
-        
-        .flex-row { display: flex; gap: 12px; align-items: center; }
-        .flex-1 { flex: 1; }
-        
-        .checkbox-wrapper { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 0.9rem; font-weight: 700;}
-        input[type="color"] { width: 100%; height: 44px; padding: 0; border: none; border-radius: 8px; cursor: pointer; background: none; }
-        
-        button { font-family: 'Lato', sans-serif; width: 100%; padding: 14px; margin-top: 16px; background: var(--accent); color: white; font-weight: 700; font-size: 1rem; border: none; border-radius: 10px; cursor: pointer; transition: opacity 0.2s; }
-        button:active { opacity: 0.7; }
-        .btn-secondary { background: var(--card-bg); color: var(--accent); border: 1px solid var(--accent); }
-        .btn-danger { background: var(--danger); }
-        .btn-small { padding: 8px 12px; font-size: 0.85rem; margin-top: 0; width: auto; }
-        
-        #status { text-align: center; margin-top: 16px; font-size: 0.85rem; font-weight: 700; height: 20px; }
-        #conn-check { text-align: center; font-size: 0.8rem; font-weight: 700; margin-bottom: 12px; color: var(--text-muted); }
-        .success { color: #34c759; }
-        .error { color: var(--danger); }
+        /* Opciones de Test */
+        .option-btn { display: block; width: 100%; text-align: left; padding: 12px 16px; margin-bottom: 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--card-bg); cursor: pointer; transition: 0.2s; font-size: 15px; }
+        .option-btn:hover:not(:disabled) { border-color: var(--primary); background: #EEF2FF; }
+        /* Estados de las opciones */
+        .option-btn.selected { border-color: var(--primary); background: #EEF2FF; border-width: 2px; }
+        .option-btn.correct { background: #D1FAE5 !important; border-color: var(--success) !important; color: #065F46; font-weight: 600; }
+        .option-btn.wrong { background: #FEE2E2 !important; border-color: var(--danger) !important; color: #991B1B; }
 
-        .saved-item { background: var(--card-bg); border-radius: 10px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); }
-        .saved-info { flex: 1; overflow: hidden; }
-        .saved-title { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .saved-desc { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
-        .saved-actions { display: flex; gap: 8px; }
+        /* Configuración de Temas (Árbol) */
+        .theme-group { margin-bottom: 16px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+        .theme-title { font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 12px; background: #F3F4F6; }
+        .csv-list { padding: 12px; display: flex; flex-direction: column; gap: 10px; background: white; border-top: 1px solid var(--border); }
+        .csv-item { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
 
-        .icon-grid-container { height: 50vh; overflow-y: auto; background: var(--card-bg); border-radius: 12px; padding: 10px; border: 1px solid var(--border); }
-        .icon-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .icon-box { background: var(--bg-color); border: 1px solid var(--border); border-radius: 8px; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; cursor: pointer; color: var(--text-muted); position: relative; text-align: center;}
-        .icon-box img { width: 60%; image-rendering: pixelated; margin-bottom: 4px; }
-        .icon-box:active { background: var(--border); }
+        /* Formularios */
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-muted); font-weight: 600; }
+        select, input[type="number"] { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-family: var(--font); font-size: 15px; }
 
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: var(--tab-bg); border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 50; }
-        .tab-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.7rem; font-weight: 700; width: 33%; height: 100%; cursor: pointer; transition: color 0.2s; }
-        .tab-item svg { width: 24px; height: 24px; margin-bottom: 4px; fill: currentColor; }
-        .tab-item.active { color: var(--accent); }
-
-        #configModal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-color); z-index: 100; padding: 20px; padding-top: calc(40px + env(safe-area-inset-top)); overflow-y: auto; padding-bottom: env(safe-area-inset-bottom); }
+        /* Test y Revisión */
+        .test-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-weight: 600; }
+        .timer { display: flex; align-items: center; gap: 6px; color: var(--danger); font-variant-numeric: tabular-nums; }
+        
+        .review-item { padding: 16px 0; border-bottom: 1px solid var(--border); }
+        .review-item:last-child { border-bottom: none; }
+        .review-q { font-weight: 600; margin-bottom: 8px; }
+        .review-ans { font-size: 14px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+        
+        /* Spinner */
+        .loader { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(79, 70, 229, 0.3); border-radius: 50%; border-top-color: var(--primary); animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-    <div class="app-header">MSSGs Awtrix</div>
+    <div id="app">
+        
+        <div id="screen-home" class="screen active">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h1><i data-lucide="book-open"></i> OpoTest</h1>
+                <button class="btn btn-outline btn-small" onclick="showScreen('screen-settings')"><i data-lucide="settings"></i> Ajustes</button>
+            </div>
 
-    <div id="tab1" class="tab-content active">
-        <div id="conn-check">⏳ Comprobando conexión...</div>
-
-        <div class="card">
-            <label>Mensaje</label>
-            <input type="text" id="msgText" placeholder="Escribe algo...">
-            
-            <div class="flex-row" style="margin-top: 12px;">
-                <div class="flex-1">
-                    <label>Icono (ID)</label>
-                    <input type="text" id="msgIcon" placeholder="Ej: 1943">
+            <div class="card minigame">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 style="color: var(--warning); margin:0;"><i data-lucide="zap"></i> Pregunta Aleatoria</h3>
+                    <button class="btn btn-outline btn-small" onclick="loadRandomQuestion()"><i data-lucide="refresh-cw"></i> Otra</button>
                 </div>
-                <div class="flex-1">
-                    <label>Color</label>
-                    <input type="color" id="msgColor" value="#ffffff">
-                    <div class="checkbox-wrapper">
-                        <input type="checkbox" id="msgRainbow"> <label style="margin:0; text-transform:none;">Rainbow 🌈</label>
+                <p id="random-question-text" style="margin-bottom: 16px; font-size: 16px;"><span class="loader"></span> Conectando con GitHub...</p>
+                <div id="random-options"></div>
+                <p id="random-feedback" style="margin-top: 12px; font-weight: 600; font-size: 14px; display: none;"></p>
+            </div>
+
+            <div class="card" style="text-align: center; padding: 40px 20px;">
+                <h2>¿Listo para estudiar?</h2>
+                <p style="color: var(--text-muted); margin-bottom: 24px;">Configura tu test por temas, cantidad y tiempo.</p>
+                <button class="btn" onclick="showScreen('screen-setup')"><i data-lucide="play-circle"></i> Configurar Nuevo Test</button>
+            </div>
+        </div>
+
+        <div id="screen-setup" class="screen">
+            <div class="top-nav">
+                <button class="back-btn" onclick="showScreen('screen-home')"><i data-lucide="arrow-left"></i> Inicio</button>
+                <h2><i data-lucide="sliders"></i> Setup</h2>
+            </div>
+            
+            <div class="card">
+                <div class="form-group">
+                    <label>1. Selecciona los Temas (Archivos CSV)</label>
+                    <div id="themes-container">
+                        <p style="text-align: center; color: var(--text-muted);"><span class="loader"></span> Cargando carpetas desde GitHub...</p>
                     </div>
                 </div>
-            </div>
 
-            <label>Sonido (Sintetizador)</label>
-            <select id="msgSound">
-                <option value="">Ninguno</option>
-                <optgroup label="Notificaciones Cortas">
-                    <option value="DobleBeep:d=4,o=5,b=160:16e6,p,16e6">Doble Beep (Aviso)</option>
-                    <option value="Alegre:d=4,o=5,b=160:16g5,16c6,16e6">Tono Alegre</option>
-                    <option value="ChimeUp:d=4,o=5,b=140:16c,16e,16g,16c6">Campanilla Limpia</option>
-                    <option value="Exito:d=4,o=5,b=120:8c6,8e6,8g6,2c7">Jingle Éxito</option>
-                    <option value="Error:d=4,o=5,b=100:8d5,8d5,8d5">Error / Alerta Grave</option>
-                    <option value="Timbre:d=4,o=5,b=100:8e6,8c6">Timbre de Puerta</option>
-                    <option value="Alarma:d=4,o=5,b=100:8d6,8d6,8d6">Alarma Alerta</option>
-                    <option value="OldPhone:d=16,o=5,b=160:32c6,32e6,32c6,32e6,32c6,32e6,32c6,32e6,8p,32c6,32e6,32c6,32e6,32c6,32e6,32c6,32e6">Teléfono Retro</option>
-                </optgroup>
-                <optgroup label="Videojuegos">
-                    <option value="Coin:d=16,o=5,b=100:32b5,8e6">Mario - Moneda</option>
-                    <option value="1Up:d=16,o=5,b=150:e6,g6,e7,c7,d7,g7">Mario - 1 UP</option>
-                    <option value="ZeldaSecret:d=16,o=5,b=140:g5,fs5,ds5,a4,gs4,e5,gs5,c6">Zelda - Secreto</option>
-                    <option value="SonicRing:d=16,o=5,b=160:e6,g6,c7">Sonic - Anillo</option>
-                    <option value="Pacman:d=16,o=5,b=112:32b,32p,32b6,32p,32f#6,32p,32d#6,32p,32b6,32f#6,16p,16d#6,16p,32c6,32p,32c7,32p,32g6,32p,32e6,32p,32c7,32g6,16p,16e6">Pacman - Intro</option>
-                    <option value="PokeHeal:d=4,o=5,b=150:8b,8b,8e6,8g#6,e6">Pokémon - Curar</option>
-                    <option value="Tetris:d=4,o=5,b=160:e6,8b,8c6,8d6,16c6,16b,a,8a,8c6,e6,8d6,8c6,b,8b,8c6,d6,e6,c6,a">Tetris Theme</option>
-                </optgroup>
-                <optgroup label="Cine, TV y Música">
-                    <option value="Imperial:d=4,o=5,b=100:e,e,e,8c,16g,e,8c,16g,e">Star Wars - Marcha Imperial</option>
-                    <option value="MissionImp:d=16,o=6,b=95:32d,32d#,32d,32d#,32d,32d#,32d,32d#,32d,32d,32d#,32e,32f,32f#,32g,g,8p,g,8p,a#,p,c7,p,g,8p,g,8p,f,p,f#,p,g,8p,g,8p,a#,p,c7">Misión Imposible</option>
-                    <option value="XFiles:d=4,o=5,b=125:e,b,a,b,e6,2b.,e,b,a,b,d6,2b.">Expediente X</option>
-                    <option value="HarryPotter:d=4,o=5,b=100:8b,e6,8g6,8f#6,e6,8b6,a6,f#6,e6,8g6,8f#6,d6,f6,2b">Harry Potter</option>
-                    <option value="Indiana:d=4,o=5,b=250:e,8p,8f,8g,8p,1c6,8p.,d,8p,8e,1f,p.,g,8p,8a,8b,8p,1f6">Indiana Jones</option>
-                    <option value="Simpsons:d=4,o=5,b=160:c,e,f#,8a,g,e,c,8a4,8f#4,8f#4,8f#4,2g4">Los Simpsons</option>
-                    <option value="Looney:d=4,o=5,b=140:8c6,8p,8f6,8p,8e6,8d6,8c6,8b,8c6,8f6,8p,8d6,8p,8c6,8b,8a,8g,8a,8c6">Looney Tunes</option>
-                    <option value="7Nation:d=4,o=5,b=120:e,8e,8g,8e,8d,c,b4">Seven Nation Army</option>
-                    <option value="Rickroll:d=4,o=5,b=115:8g,8a,8c6,8a,e6,e6,2d6,8g,8a,8c6,8a,d6,d6,2c6">Rickroll</option>
-                    <option value="Beethoven:d=4,o=5,b=108:8g,8g,8g,2d#">Beethoven (5ª)</option>
-                </optgroup>
-            </select>
-
-            <div class="flex-row" style="margin-top: 12px;">
-                <div class="flex-1">
-                    <label>Duración (seg)</label>
-                    <input type="number" id="msgDuration" value="10" min="1">
+                <div class="form-group" style="margin-top: 24px;">
+                    <label>2. Número de Preguntas</label>
+                    <input type="number" id="num-questions" value="20" min="0">
+                    <small style="color: var(--text-muted);">Pon 0 para hacer todas las seleccionadas. Si elijes menos del total, se barajarán.</small>
                 </div>
-                <div class="flex-1">
-                    <label>Repeticiones</label>
-                    <input type="number" id="msgRepeat" value="1" min="1">
+
+                <div style="display: flex; gap: 12px; margin-top: 24px;">
+                    <button class="btn" style="flex: 1; justify-content: center;" onclick="startTest()" id="btn-start"><i data-lucide="play"></i> Empezar Test</button>
                 </div>
             </div>
         </div>
 
-        <button onclick="enviarMensaje()">ENVIAR AL RELOJ 🚀</button>
-        <button class="btn-secondary" onclick="guardarMensaje()">Guardar Configuración 💾</button>
-        <div id="status">Listo</div>
-    </div>
-
-    <div id="tab2" class="tab-content">
-        <h3 style="margin-top:0">Mensajes Guardados</h3>
-        <div id="savedList"></div>
-        <p id="noSavedMsg" style="text-align:center; color:var(--text-muted); font-size:0.9rem;">No hay mensajes guardados.</p>
-
-        <div class="flex-row" style="margin-top: 20px;">
-            <div class="flex-1">
-                <button class="btn-secondary" onclick="exportarBackup()">⬇️ Exportar Backup</button>
+        <div id="screen-test" class="screen">
+            <div class="test-header">
+                <div id="test-progress">Pregunta 1 de X</div>
+                <div class="timer" id="test-timer"><i data-lucide="clock"></i> 00:00</div>
             </div>
-            <div class="flex-1">
-                <button class="btn-secondary" onclick="document.getElementById('importFile').click()">⬆️ Importar</button>
-                <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importarBackup(event)">
-            </div>
-        </div>
-        
-        <button onclick="abrirConfig()" style="margin-top: 16px; background-color: #34c759; color: white; border: none;">⚙️ Configuración de Conexión</button>
-    </div>
-
-    <div id="tab3" class="tab-content">
-        <h3 style="margin-top:0">Mis Iconos Frecuentes</h3>
-        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: -10px;">Se añaden automáticamente al guardar mensajes.</p>
-        
-        <div class="icon-grid-container">
-            <div class="icon-grid" id="iconGrid"></div>
-        </div>
-
-        <div class="flex-row" style="margin-top: 16px;">
-            <div class="flex-1">
-                <button class="btn-secondary" onclick="window.open('https://developer.lametric.com/icons', '_blank')" style="margin-top: 0; padding: 10px; font-size: 0.85rem;">🌐 Buscar Iconos</button>
-            </div>
-            <div class="flex-1">
-                <button class="btn-danger" onclick="restablecerIconos()" style="margin-top: 0; padding: 10px; font-size: 0.85rem;">🔄 Restablecer</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="configModal">
-        <h2 style="margin-top:0">Datos Privados (Local)</h2>
-        <p style="font-size:0.85rem; color:var(--text-muted);">Estos datos no salen de tu teléfono y se incluyen en tus backups.</p>
-        
-        <div class="card">
-            <label>URL Home Assistant (con https://)</label>
-            <input type="url" id="confUrl" placeholder="https://tu-casa.ui.nabu.casa">
             
-            <label>Token de Larga Duración</label>
-            <input type="password" id="confToken" placeholder="eyJhbGciOiJIUzI1NiIs...">
+            <div class="card">
+                <h2 id="question-text" style="font-size: 18px; line-height: 1.5;">Cargando...</h2>
+                <div id="test-options" style="margin-top: 24px;"></div>
+            </div>
             
-            <label>Topic MQTT del Reloj</label>
-            <input type="text" id="confTopic" placeholder="larafuzas_casa/notify">
+            <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+                <button class="btn btn-outline" style="color: var(--danger); border-color: var(--danger);" onclick="abandonTest()"><i data-lucide="x-circle"></i> Abandonar</button>
+                <button class="btn" onclick="nextQuestion()" id="btn-next" disabled>Siguiente <i data-lucide="chevron-right"></i></button>
+            </div>
         </div>
 
-        <button onclick="guardarConfig()">Guardar y Cerrar</button>
-        <button class="btn-danger" onclick="cerrarConfig()" style="margin-top:10px;">Cancelar</button>
-    </div>
+        <div id="screen-results" class="screen">
+            <div class="top-nav">
+                <button class="back-btn" onclick="showScreen('screen-home')"><i data-lucide="home"></i> Volver al Inicio</button>
+            </div>
 
-    <div class="tab-bar">
-        <div class="tab-item active" onclick="switchTab(1)">
-            <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>Enviar
+            <div class="card" style="text-align: center;">
+                <h2><i data-lucide="award"></i> Resultados del Test</h2>
+                <div style="font-size: 48px; font-weight: 600; color: var(--primary); margin: 20px 0;" id="result-score">--/--</div>
+                <p id="result-stats" style="color: var(--text-muted); margin-bottom: 24px;"></p>
+                
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <button class="btn" onclick="toggleReview()"><i data-lucide="file-search"></i> Ver Revisión Completa</button>
+                    <button class="btn btn-outline" onclick="exportPDF()"><i data-lucide="download"></i> PDF</button>
+                </div>
+            </div>
+
+            <div id="review-container" class="card" style="display: none; margin-top: 20px;">
+                <h2 style="margin-bottom: 20px;"><i data-lucide="check-square"></i> Revisión del Test</h2>
+                <div id="review-content"></div>
+            </div>
         </div>
-        <div class="tab-item" onclick="switchTab(2)">
-            <svg viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>Guardados
+
+        <div id="screen-settings" class="screen">
+            <div class="top-nav">
+                <button class="back-btn" onclick="showScreen('screen-home')"><i data-lucide="arrow-left"></i> Inicio</button>
+                <h2><i data-lucide="settings"></i> Ajustes</h2>
+            </div>
+            
+            <div class="card">
+                <div class="form-group">
+                    <label>Repositorio de GitHub (Usuario/Repo)</label>
+                    <input type="text" id="set-repo" value="larafuzas/Testaruda" disabled>
+                    <small style="color:var(--text-muted);">Fijado en la programación.</small>
+                </div>
+                <div class="form-group">
+                    <label>Tiempo por pregunta (segundos)</label>
+                    <input type="number" id="set-time" value="60">
+                </div>
+                <div class="form-group">
+                    <label>Modo de Corrección</label>
+                    <select id="set-correction">
+                        <option value="live">En vivo (Pregunta a pregunta)</option>
+                        <option value="end">Al finalizar el test</option>
+                    </select>
+                </div>
+                <button class="btn" style="width: 100%; justify-content: center; margin-top: 16px;" onclick="saveSettings()">Guardar Ajustes</button>
+            </div>
         </div>
-        <div class="tab-item" onclick="switchTab(3)">
-            <svg viewBox="0 0 24 24"><path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/></svg>Iconos
-        </div>
+
     </div>
 
     <script>
-        // 1. GESTIÓN DE PESTAÑAS Y CONEXIÓN
-        function switchTab(tabIndex) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
-            
-            document.getElementById('tab' + tabIndex).classList.add('active');
-            document.querySelectorAll('.tab-item')[tabIndex - 1].classList.add('active');
-            window.scrollTo(0,0);
-            if(tabIndex === 1) verificarConexion();
-        }
+        lucide.createIcons();
 
-        async function verificarConexion() {
-            const checkEl = document.getElementById('conn-check');
-            const url = localStorage.getItem('ha_url');
-            const token = localStorage.getItem('ha_token');
-
-            if (!url || !token) { checkEl.innerHTML = "❌ Faltan datos de configuración"; checkEl.style.color = "var(--danger)"; return; }
-            checkEl.innerHTML = "⏳ Comprobando..."; checkEl.style.color = "var(--text-muted)";
-
-            try {
-                const response = await fetch(`${url}/api/`, {
-                    method: 'GET',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
-                });
-                if (response.ok) { checkEl.innerHTML = "✅ Conectado a la red"; checkEl.style.color = "#34c759"; } 
-                else { checkEl.innerHTML = "❌ Error en credenciales"; checkEl.style.color = "var(--danger)"; }
-            } catch (error) { checkEl.innerHTML = "❌ Sin conexión"; checkEl.style.color = "var(--danger)"; }
-        }
-
-        // 2. CONFIGURACIÓN
-        function abrirConfig() {
-            document.getElementById('confUrl').value = localStorage.getItem('ha_url') || '';
-            document.getElementById('confToken').value = localStorage.getItem('ha_token') || '';
-            document.getElementById('confTopic').value = localStorage.getItem('ha_topic') || '';
-            document.getElementById('configModal').style.display = 'block';
-        }
-        function cerrarConfig() { document.getElementById('configModal').style.display = 'none'; }
-        function guardarConfig() {
-            localStorage.setItem('ha_url', document.getElementById('confUrl').value.replace(/\/$/, "").trim());
-            localStorage.setItem('ha_token', document.getElementById('confToken').value.trim());
-            localStorage.setItem('ha_topic', document.getElementById('confTopic').value.trim());
-            cerrarConfig();
-            mostrarEstado("✅ Configuración guardada", "success");
-            verificarConexion();
-        }
-
-        // 3. ENVÍO AL RELOJ (PLAN B - DISPARO DOBLE)
-        function mostrarEstado(msg, tipo) {
-            const statusEl = document.getElementById('status');
-            statusEl.innerHTML = `<span class="${tipo}">${msg}</span>`;
-            setTimeout(() => { statusEl.innerHTML = "Listo"; }, 4000);
-        }
-
-        async function enviarPayload(payload, rtttlString) {
-            const url = localStorage.getItem('ha_url');
-            const token = localStorage.getItem('ha_token');
-            const topic = localStorage.getItem('ha_topic');
-
-            if (!url || !token || !topic) { switchTab(2); abrirConfig(); alert("Faltan datos de conexión."); return; }
-
-            const haBodyVisual = { topic: topic, payload: JSON.stringify(payload) };
-            mostrarEstado("Enviando...", "text-muted");
-
-            try {
-                // 1er Disparo: La Notificación Visual (Texto e Icono)
-                const response = await fetch(`${url}/api/services/mqtt/publish`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify(haBodyVisual)
-                });
-
-                // 2º Disparo: El Sonido en bruto directo a la vena musical de Awtrix
-                if (rtttlString) {
-                    const baseTopic = topic.replace(/\/notify$/i, ''); 
-                    const haBodyAudio = { topic: `${baseTopic}/rtttl`, payload: rtttlString };
-                    
-                    await fetch(`${url}/api/services/mqtt/publish`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify(haBodyAudio)
-                    });
-                }
-
-                if (response.ok) mostrarEstado("✅ ¡Mensaje enviado!", "success");
-                else mostrarEstado(`❌ Error ${response.status}`, "error");
-            } catch (error) { mostrarEstado("❌ Error de red", "error"); console.error(error); }
-        }
-
-        function enviarMensaje() {
-            const text = document.getElementById('msgText').value || " ";
-            const icon = document.getElementById('msgIcon').value;
-            const hex = document.getElementById('msgColor').value;
-            const sound = document.getElementById('msgSound').value; // El código rtttl en bruto
-
-            const payload = {
-                text: text,
-                wakeup: true,
-                duration: parseInt(document.getElementById('msgDuration').value) || 10,
-                repeat: parseInt(document.getElementById('msgRepeat').value) || 1,
-                color: [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)]
-            };
-
-            if (document.getElementById('msgRainbow').checked) payload.rainbow = true;
-            if (icon) payload.icon = icon;
-
-            // Enviamos el payload JSON y el sonido por separado para el Plan B
-            enviarPayload(payload, sound ? sound : null);
-        }
-
-        // 4. DATOS LOCALES (Mensajes e Iconos)
-        let mensajesGuardados = JSON.parse(localStorage.getItem('saved_msgs')) || [];
+        // VARIABLES Y ESTADOS
+        const REPO_PATH = 'larafuzas/Testaruda';
+        let allCsvFiles = []; // Guardará las rutas a los CSV
         
-        const iconosPredeterminados = ['1943', '2819', '35778', '9136', '44874', '37384', '2012', '44873', '1063'];
-        let iconosGuardados = JSON.parse(localStorage.getItem('saved_icons')) || iconosPredeterminados;
+        let appSettings = { timePerQuestion: 60, correctionMode: 'live' };
+        let timerInterval;
+        let timeRemaining = 0;
+        
+        let currentTest = {
+            questions: [],
+            currentIndex: 0,
+            correctAnswers: 0,
+            timeSpent: 0
+        };
 
-        function guardarMensaje() {
-            const textVal = document.getElementById('msgText').value;
-            const iconVal = document.getElementById('msgIcon').value.trim();
-            if(!textVal && !iconVal) { alert("Añade un texto o icono."); return; }
-            
-            if(iconVal && !iconosGuardados.includes(iconVal)) {
-                iconosGuardados.push(iconVal);
-                localStorage.setItem('saved_icons', JSON.stringify(iconosGuardados));
-                renderIconGrid();
-            }
+        // CARGA INICIAL: Conectar a GitHub API
+        window.onload = async () => {
+            loadSettings();
+            await fetchRepoStructure();
+            loadRandomQuestion();
+        };
 
-            const msgObj = {
-                id: Date.now(),
-                text: textVal,
-                icon: iconVal,
-                color: document.getElementById('msgColor').value,
-                rainbow: document.getElementById('msgRainbow').checked,
-                sound: document.getElementById('msgSound').value,
-                duration: document.getElementById('msgDuration').value,
-                repeat: document.getElementById('msgRepeat').value
-            };
-
-            mensajesGuardados.push(msgObj);
-            localStorage.setItem('saved_msgs', JSON.stringify(mensajesGuardados));
-            renderSaved();
-            mostrarEstado("💾 Guardado en pestaña 2", "success");
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            window.scrollTo(0,0);
         }
 
-        function cargarAlFormulario(id) {
-            const msg = mensajesGuardados.find(m => m.id === id);
-            if(msg) {
-                document.getElementById('msgText').value = msg.text;
-                document.getElementById('msgIcon').value = msg.icon;
-                document.getElementById('msgColor').value = msg.color;
-                document.getElementById('msgRainbow').checked = msg.rainbow;
-                document.getElementById('msgSound').value = msg.sound;
-                document.getElementById('msgDuration').value = msg.duration;
-                document.getElementById('msgRepeat').value = msg.repeat;
-                switchTab(1);
+        function loadSettings() {
+            let saved = localStorage.getItem('opoTestSettings');
+            if(saved) {
+                appSettings = JSON.parse(saved);
+                document.getElementById('set-time').value = appSettings.timePerQuestion;
+                document.getElementById('set-correction').value = appSettings.correctionMode;
             }
         }
 
-        function enviarDirecto(id) {
-            const msg = mensajesGuardados.find(m => m.id === id);
-            if(!msg) return;
-            const payload = {
-                text: msg.text || " ", wakeup: true,
-                duration: parseInt(msg.duration) || 10, repeat: parseInt(msg.repeat) || 1,
-                color: [parseInt(msg.color.slice(1,3),16), parseInt(msg.color.slice(3,5),16), parseInt(msg.color.slice(5,7),16)]
-            };
-            if (msg.rainbow) payload.rainbow = true;
-            if (msg.icon) payload.icon = msg.icon;
-            
-            // Plan B para envíos directos
-            enviarPayload(payload, msg.sound ? msg.sound : null);
+        function saveSettings() {
+            appSettings.timePerQuestion = parseInt(document.getElementById('set-time').value) || 60;
+            appSettings.correctionMode = document.getElementById('set-correction').value;
+            localStorage.setItem('opoTestSettings', JSON.stringify(appSettings));
+            alert('Ajustes guardados.');
+            showScreen('screen-home');
         }
 
-        function borrarMensaje(id) {
-            if(confirm("¿Borrar este mensaje guardado?")) {
-                mensajesGuardados = mensajesGuardados.filter(m => m.id !== id);
-                localStorage.setItem('saved_msgs', JSON.stringify(mensajesGuardados));
-                renderSaved();
+        // --- GITHUB API FETCHING ---
+        async function fetchRepoStructure() {
+            try {
+                // Obtenemos rama por defecto (main o master)
+                const repoInfoRes = await fetch(`https://api.github.com/repos/${REPO_PATH}`);
+                if (!repoInfoRes.ok) throw new Error("No se pudo conectar al repositorio.");
+                const repoInfo = await repoInfoRes.json();
+                const branch = repoInfo.default_branch;
+
+                // Obtenemos el árbol completo
+                const treeRes = await fetch(`https://api.github.com/repos/${REPO_PATH}/git/trees/${branch}?recursive=1`);
+                const treeData = await treeRes.json();
+
+                // Filtramos solo CSVs dentro de 'Preguntas/'
+                allCsvFiles = treeData.tree.filter(file => file.path.startsWith('Preguntas/') && file.path.endsWith('.csv'));
+
+                buildThemesUI(allCsvFiles, branch);
+
+            } catch (error) {
+                console.error(error);
+                document.getElementById('themes-container').innerHTML = `<p style="color: var(--danger); text-align:center;">Error conectando con GitHub. Revisa que el repositorio sea público y exista la carpeta "Preguntas".</p>`;
+                document.getElementById('random-question-text').innerText = "Error de conexión.";
             }
         }
 
-        function renderSaved() {
-            const container = document.getElementById('savedList');
-            const noMsg = document.getElementById('noSavedMsg');
+        function buildThemesUI(files, branch) {
+            const container = document.getElementById('themes-container');
             container.innerHTML = '';
             
-            if(mensajesGuardados.length === 0) { noMsg.style.display = 'block'; } 
-            else {
-                noMsg.style.display = 'none';
-                mensajesGuardados.forEach(msg => {
-                    let descSonido = "Sin sonido";
-                    if(msg.sound) descSonido = document.querySelector(`#msgSound option[value="${msg.sound}"]`)?.text || "Melodía";
-                    const desc = `${msg.icon ? 'Ícono: '+msg.icon : 'Sin icono'} | ${descSonido} | ${msg.duration}s`;
-                    
-                    container.innerHTML += `
-                        <div class="saved-item">
-                            <div class="saved-info" onclick="cargarAlFormulario(${msg.id})">
-                                <div class="saved-title" style="color: ${msg.rainbow ? 'var(--accent)' : msg.color}">${msg.text || '[Solo Icono]'}</div>
-                                <div class="saved-desc">${desc}</div>
-                            </div>
-                            <div class="saved-actions">
-                                <button class="btn-small" onclick="enviarDirecto(${msg.id})">🚀</button>
-                                <button class="btn-small btn-danger" onclick="borrarMensaje(${msg.id})">🗑️</button>
-                            </div>
+            if(files.length === 0) {
+                container.innerHTML = '<p style="text-align:center;">No se encontraron archivos CSV en la carpeta Preguntas/.</p>';
+                return;
+            }
+
+            // Agrupar por subcarpeta (Tema)
+            const themes = {};
+            files.forEach(file => {
+                const parts = file.path.split('/'); // ["Preguntas", "Tema 1", "bloque1.csv"]
+                const themeName = parts.length > 2 ? parts[1] : 'General';
+                if(!themes[themeName]) themes[themeName] = [];
+                // Guardamos el Raw URL para descargarlo luego
+                const rawUrl = `https://raw.githubusercontent.com/${REPO_PATH}/${branch}/${file.path}`;
+                themes[themeName].push({ name: parts[parts.length-1], url: rawUrl });
+            });
+
+            // Construir HTML
+            Object.keys(themes).forEach((themeName, index) => {
+                let groupHTML = `
+                    <div class="theme-group">
+                        <div class="theme-title" onclick="toggleTheme('t_${index}')">
+                            <i data-lucide="folder"></i> ${themeName}
                         </div>
-                    `;
+                        <div class="csv-list" id="t_${index}" style="display:none;">
+                `;
+                themes[themeName].forEach(csv => {
+                    groupHTML += `<label class="csv-item"><input type="checkbox" class="csv-checkbox" value="${csv.url}"> ${csv.name}</label>`;
+                });
+                groupHTML += `</div></div>`;
+                container.innerHTML += groupHTML;
+            });
+            lucide.createIcons();
+        }
+
+        function toggleTheme(id) {
+            const el = document.getElementById(id);
+            el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+        }
+
+        // --- LÓGICA DE TEST ---
+        async function startTest() {
+            const checkboxes = document.querySelectorAll('.csv-checkbox:checked');
+            if(checkboxes.length === 0) return alert('Selecciona al menos un archivo CSV.');
+
+            const btnStart = document.getElementById('btn-start');
+            btnStart.innerHTML = '<span class="loader"></span> Preparando...';
+            btnStart.disabled = true;
+
+            let allQuestions = [];
+
+            try {
+                // Descargar y parsear los CSV seleccionados
+                for(let box of checkboxes) {
+                    const response = await fetch(box.value);
+                    const csvText = await response.text();
+                    const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+                    allQuestions = allQuestions.concat(parsed.data);
+                }
+
+                // Filtrar preguntas vacías
+                allQuestions = allQuestions.filter(q => q.pregunta && q.correcta);
+
+                if(allQuestions.length === 0) throw new Error("Archivos vacíos o mal formateados.");
+
+                // Barajar y cortar según cantidad
+                let requestedNum = parseInt(document.getElementById('num-questions').value);
+                allQuestions.sort(() => Math.random() - 0.5); // Shuffle básico
+                if(requestedNum > 0 && requestedNum < allQuestions.length) {
+                    allQuestions = allQuestions.slice(0, requestedNum);
+                }
+
+                // Iniciar estado
+                currentTest.questions = allQuestions.map(q => ({ ...q, userAnswer: null }));
+                currentTest.currentIndex = 0;
+                currentTest.correctAnswers = 0;
+                currentTest.timeSpent = 0;
+                
+                timeRemaining = currentTest.questions.length * appSettings.timePerQuestion;
+                startTimer();
+
+                renderTestQuestion();
+                showScreen('screen-test');
+
+            } catch(e) {
+                alert('Error al cargar las preguntas: ' + e.message);
+            } finally {
+                btnStart.innerHTML = '<i data-lucide="play"></i> Empezar Test';
+                btnStart.disabled = false;
+                lucide.createIcons();
+            }
+        }
+
+        function renderTestQuestion() {
+            let q = currentTest.questions[currentTest.currentIndex];
+            document.getElementById('test-progress').innerText = `Pregunta ${currentTest.currentIndex + 1} de ${currentTest.questions.length}`;
+            document.getElementById('question-text').innerText = q.pregunta;
+            
+            const optionsDiv = document.getElementById('test-options');
+            optionsDiv.innerHTML = '';
+            
+            ['a', 'b', 'c', 'd'].forEach(letter => {
+                if(!q[letter]) return; // Evitar opciones nulas si no existen
+                let btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = `${letter.toUpperCase()}) ${q[letter]}`;
+                btn.onclick = () => selectTestOption(btn, letter.toUpperCase(), q.correcta);
+                optionsDiv.appendChild(btn);
+            });
+            
+            document.getElementById('btn-next').disabled = true;
+        }
+
+        function selectTestOption(btn, selected, correct) {
+            const buttons = document.querySelectorAll('#test-options .option-btn');
+            const isLive = appSettings.correctionMode === 'live';
+            
+            // Guardar respuesta del usuario
+            currentTest.questions[currentTest.currentIndex].userAnswer = selected;
+
+            buttons.forEach(b => b.classList.remove('selected'));
+
+            if (isLive) {
+                // MODO EN VIVO
+                buttons.forEach(b => b.style.pointerEvents = 'none'); // Bloquear
+                if(selected === correct) {
+                    btn.classList.add('correct');
+                    currentTest.correctAnswers++;
+                } else {
+                    btn.classList.add('wrong');
+                    buttons.forEach(b => { if(b.innerText.startsWith(correct)) b.classList.add('correct'); });
+                }
+            } else {
+                // MODO AL FINALIZAR
+                btn.classList.add('selected');
+                // Si cambia de opinión, actualizamos la nota luego al calcular todo al final
+            }
+
+            document.getElementById('btn-next').disabled = false;
+        }
+
+        function nextQuestion() {
+            currentTest.currentIndex++;
+            if(currentTest.currentIndex >= currentTest.questions.length) {
+                endTest();
+            } else {
+                renderTestQuestion();
+            }
+        }
+
+        function endTest() {
+            clearInterval(timerInterval);
+            
+            // Si el modo era "al final", calcular aciertos ahora
+            if(appSettings.correctionMode === 'end') {
+                currentTest.correctAnswers = 0;
+                currentTest.questions.forEach(q => {
+                    if(q.userAnswer === q.correcta) currentTest.correctAnswers++;
                 });
             }
+
+            let mins = Math.floor(currentTest.timeSpent / 60);
+            let secs = currentTest.timeSpent % 60;
+
+            document.getElementById('result-score').innerText = `${currentTest.correctAnswers} / ${currentTest.questions.length}`;
+            document.getElementById('result-stats').innerText = `Has empleado ${mins}m ${secs}s en completar el test.`;
+            
+            // Ocultar la revisión al principio
+            document.getElementById('review-container').style.display = 'none';
+            buildReview();
+
+            showScreen('screen-results');
         }
 
-        function renderIconGrid() {
-            const grid = document.getElementById('iconGrid');
-            grid.innerHTML = '';
-            iconosGuardados.forEach(id => {
-                grid.innerHTML += `
-                    <div class="icon-box" onclick="seleccionarIcono('${id}')">
-                        <img src="https://developer.lametric.com/content/apps/icon_thumbs/${id}" alt="Icon ${id}">
-                        ID: ${id}
-                    </div>
-                `;
-            });
-        }
-
-        function seleccionarIcono(id) { document.getElementById('msgIcon').value = id; switchTab(1); }
-
-        function restablecerIconos() {
-            if(confirm("¿Estás seguro de restablecer la galería a los iconos por defecto? (Se borrarán los que hayas guardado manualmente)")) {
-                iconosGuardados = [...iconosPredeterminados];
-                localStorage.setItem('saved_icons', JSON.stringify(iconosGuardados));
-                renderIconGrid();
+        function abandonTest() {
+            if(confirm("¿Seguro que quieres abandonar? Se perderá el progreso.")) {
+                clearInterval(timerInterval);
+                showScreen('screen-home');
             }
         }
 
-        // 5. BACKUP TOTAL (Exportar e Importar)
-        function exportarBackup() {
-            const backupTotal = {
-                mensajes: mensajesGuardados,
-                iconos: iconosGuardados,
-                config: {
-                    url: localStorage.getItem('ha_url') || '',
-                    token: localStorage.getItem('ha_token') || '',
-                    topic: localStorage.getItem('ha_topic') || ''
-                }
-            };
+        // --- REVISIÓN Y PDF ---
+        function toggleReview() {
+            const rev = document.getElementById('review-container');
+            rev.style.display = rev.style.display === 'none' ? 'block' : 'none';
+            // Scrollear hacia abajo suavemente
+            if(rev.style.display === 'block') {
+                setTimeout(() => window.scrollTo({ top: rev.offsetTop, behavior: 'smooth' }), 100);
+            }
+        }
+
+        function buildReview() {
+            const container = document.getElementById('review-content');
+            let html = '';
             
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupTotal));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", "mssgs_awtrix_backup.json");
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
+            currentTest.questions.forEach((q, i) => {
+                let isCorrect = q.userAnswer === q.correcta;
+                let userTxt = q.userAnswer ? `${q.userAnswer}) ${q[q.userAnswer.toLowerCase()]}` : "No contestada";
+                let corrTxt = `${q.correcta}) ${q[q.correcta.toLowerCase()]}`;
+                
+                let iconUser = isCorrect ? `<i data-lucide="check-circle" style="color:var(--success); width:18px;"></i>` : `<i data-lucide="x-circle" style="color:var(--danger); width:18px;"></i>`;
+
+                html += `
+                <div class="review-item">
+                    <div class="review-q">${i+1}. ${q.pregunta}</div>
+                    <div class="review-ans" style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">
+                        ${iconUser} Tu respuesta: ${userTxt}
+                    </div>
+                    ${!isCorrect ? `<div class="review-ans" style="color: var(--primary);"><i data-lucide="arrow-right" style="width:18px;"></i> Correcta: ${corrTxt}</div>` : ''}
+                </div>`;
+            });
+            
+            container.innerHTML = html;
+            lucide.createIcons();
         }
 
-        function importarBackup(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    
-                    if (data.mensajes) { mensajesGuardados = data.mensajes; localStorage.setItem('saved_msgs', JSON.stringify(mensajesGuardados)); }
-                    if (data.iconos) { iconosGuardados = data.iconos; localStorage.setItem('saved_icons', JSON.stringify(iconosGuardados)); }
-                    if (data.config) {
-                        localStorage.setItem('ha_url', data.config.url);
-                        localStorage.setItem('ha_token', data.config.token);
-                        localStorage.setItem('ha_topic', data.config.topic);
-                    }
-                    
-                    renderSaved();
-                    renderIconGrid();
-                    verificarConexion();
-                    alert("✅ ¡Backup importado con éxito! Tienes todo listo.");
-                } catch (error) {
-                    alert("❌ Error: El archivo no es un backup válido de Awtrix.");
-                }
+        function exportPDF() {
+            const element = document.getElementById('review-container');
+            element.style.display = 'block'; // Asegurar que está visible
+            
+            let opt = {
+                margin:       10,
+                filename:     `OpoTest_Revision_${new Date().toLocaleDateString()}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
-            reader.readAsText(file);
-            event.target.value = '';
+
+            html2pdf().set(opt).from(element).save();
         }
 
-        // Inicialización
-        window.onload = () => {
-            renderSaved();
-            renderIconGrid();
-            verificarConexion();
-        };
+        // --- TEMPORIZADOR ---
+        function startTimer() {
+            clearInterval(timerInterval);
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                currentTest.timeSpent++;
+                updateTimerDisplay();
+                if(timeRemaining <= 0) {
+                    alert("¡Tiempo agotado!");
+                    endTest();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            let m = Math.floor(timeRemaining / 60).toString().padStart(2, '0');
+            let s = (timeRemaining % 60).toString().padStart(2, '0');
+            document.getElementById('test-timer').innerHTML = `<i data-lucide="clock"></i> ${m}:${s}`;
+            lucide.createIcons();
+        }
+
+        // --- MINIJUEGO (Aleatorio desde GitHub) ---
+        async function loadRandomQuestion() {
+            const txtLabel = document.getElementById('random-question-text');
+            const optionsDiv = document.getElementById('random-options');
+            const feedback = document.getElementById('random-feedback');
+            
+            txtLabel.innerHTML = '<span class="loader"></span> Buscando pregunta...';
+            optionsDiv.innerHTML = '';
+            feedback.style.display = 'none';
+
+            if(allCsvFiles.length === 0) {
+                txtLabel.innerText = "No hay archivos CSV disponibles para el minijuego.";
+                return;
+            }
+
+            try {
+                // Elegir archivo al azar
+                const randomFile = allCsvFiles[Math.floor(Math.random() * allCsvFiles.length)];
+                
+                // Obtener URL cruda (asumiendo que ya obtuvimos el branch en fetchRepoStructure, pero usaremos el truco de raw.githubusercontent)
+                // Para simplificar, buscamos la URL que guardamos en themes
+                const checkboxes = document.querySelectorAll('.csv-checkbox');
+                let fileUrl = Array.from(checkboxes).find(cb => cb.value.includes(randomFile.path))?.value;
+                
+                if(!fileUrl) throw new Error("No se pudo resolver la URL del CSV.");
+
+                const res = await fetch(fileUrl);
+                const csvTxt = await res.text();
+                const parsed = Papa.parse(csvTxt, { header: true, skipEmptyLines: true });
+                const questions = parsed.data.filter(q => q.pregunta && q.correcta);
+                
+                if(questions.length === 0) throw new Error("Archivo vacío.");
+
+                // Pregunta al azar
+                const q = questions[Math.floor(Math.random() * questions.length)];
+
+                txtLabel.innerText = q.pregunta;
+                
+                ['a', 'b', 'c', 'd'].forEach(letter => {
+                    if(!q[letter]) return;
+                    let btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.innerText = `${letter.toUpperCase()}) ${q[letter]}`;
+                    btn.onclick = () => {
+                        if(letter.toUpperCase() === q.correcta) {
+                            btn.classList.add('correct');
+                            feedback.innerText = "¡Correcto! ✅";
+                            feedback.style.color = "var(--success)";
+                        } else {
+                            btn.classList.add('wrong');
+                            feedback.innerText = `Fallaste ❌. La correcta era la ${q.correcta}.`;
+                            feedback.style.color = "var(--danger)";
+                        }
+                        feedback.style.display = 'block';
+                        optionsDiv.querySelectorAll('.option-btn').forEach(b => b.style.pointerEvents = 'none');
+                    };
+                    optionsDiv.appendChild(btn);
+                });
+
+            } catch(e) {
+                txtLabel.innerText = "Error cargando minijuego: " + e.message;
+            }
+        }
     </script>
 </body>
 </html>
