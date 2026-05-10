@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpoTest - larafuzas</title>
+    <title>Testaruda</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
+        /* VARIABLES DE DISEÑO */
         :root {
             --primary: #4F46E5;
             --primary-hover: #4338CA;
@@ -20,7 +20,6 @@
             --text-muted: #6B7280;
             --success: #10B981;
             --danger: #EF4444;
-            --warning: #F59E0B;
             --border: #E5E7EB;
             --radius: 12px;
             --font: 'Inter', sans-serif;
@@ -28,184 +27,221 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        body { font-family: var(--font); background-color: var(--bg-color); color: var(--text-main); display: flex; justify-content: center; min-height: 100vh; padding: 20px; }
-        #app { width: 100%; max-width: 800px; position: relative; }
+        body {
+            font-family: var(--font);
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
 
-        /* Pantallas */
+        #app {
+            width: 100%;
+            max-width: 800px;
+            position: relative;
+        }
+
+        /* Utilidades de Pantallas */
         .screen { display: none; animation: fadeIn 0.3s ease; }
         .screen.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Cabecera de pantallas (Botón Atrás) */
-        .top-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
-        .back-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 16px; padding: 8px 0; transition: 0.2s; }
-        .back-btn:hover { color: var(--primary); }
-
         /* Tarjetas */
-        .card { background: var(--card-bg); border-radius: var(--radius); padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-bottom: 20px; border: 1px solid var(--border); }
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+        }
+
         h1, h2, h3 { font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
         
         /* Botones */
-        .btn { background-color: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.2s;
+        }
         .btn:hover { background-color: var(--primary-hover); }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-outline { background: transparent; color: var(--text-main); border: 1px solid var(--border); }
         .btn-outline:hover { background: var(--bg-color); }
-        .btn-small { padding: 8px 16px; font-size: 14px; }
+        .btn-sm { padding: 8px 16px; font-size: 14px; }
+
+        /* Alerta OTA */
+        #ota-alert {
+            display: none;
+            background-color: var(--success);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+            cursor: pointer;
+        }
 
         /* Minijuego */
-        .minigame { border-left: 4px solid var(--warning); }
-        
-        /* Opciones de Test */
-        .option-btn { display: block; width: 100%; text-align: left; padding: 12px 16px; margin-bottom: 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--card-bg); cursor: pointer; transition: 0.2s; font-size: 15px; }
-        .option-btn:hover:not(:disabled) { border-color: var(--primary); background: #EEF2FF; }
-        /* Estados de las opciones */
-        .option-btn.selected { border-color: var(--primary); background: #EEF2FF; border-width: 2px; }
-        .option-btn.correct { background: #D1FAE5 !important; border-color: var(--success) !important; color: #065F46; font-weight: 600; }
-        .option-btn.wrong { background: #FEE2E2 !important; border-color: var(--danger) !important; color: #991B1B; }
+        .minigame { border-left: 4px solid var(--primary); }
+        .option-btn {
+            display: block; width: 100%; text-align: left; padding: 12px 16px; margin-bottom: 8px;
+            border: 1px solid var(--border); border-radius: 8px; background: var(--card-bg);
+            cursor: pointer; transition: 0.2s; font-size: 15px;
+        }
+        .option-btn:hover { border-color: var(--primary); background: #EEF2FF; }
+        .option-btn.correct { background: #D1FAE5; border-color: var(--success); color: #065F46; }
+        .option-btn.wrong { background: #FEE2E2; border-color: var(--danger); color: #991B1B; }
 
-        /* Configuración de Temas (Árbol) */
-        .theme-group { margin-bottom: 16px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-        .theme-title { font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 12px; background: #F3F4F6; }
-        .csv-list { padding: 12px; display: flex; flex-direction: column; gap: 10px; background: white; border-top: 1px solid var(--border); }
-        .csv-item { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+        /* Estructura Árbol de Temas */
+        .theme-group { margin-bottom: 16px; }
+        .theme-title { font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 8px; background: #F3F4F6; border-radius: 6px; }
+        .csv-list { margin-left: 24px; margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
 
         /* Formularios */
         .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-muted); font-weight: 600; }
-        select, input[type="number"] { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-family: var(--font); font-size: 15px; }
+        .form-group label { display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-muted); }
+        input[type="number"] { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; }
 
-        /* Test y Revisión */
+        /* Cabecera del Test */
         .test-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-weight: 600; }
         .timer { display: flex; align-items: center; gap: 6px; color: var(--danger); font-variant-numeric: tabular-nums; }
-        
-        .review-item { padding: 16px 0; border-bottom: 1px solid var(--border); }
-        .review-item:last-child { border-bottom: none; }
-        .review-q { font-weight: 600; margin-bottom: 8px; }
-        .review-ans { font-size: 14px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
-        
-        /* Spinner */
-        .loader { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(79, 70, 229, 0.3); border-radius: 50%; border-top-color: var(--primary); animation: spin 1s ease-in-out infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Historial */
+        .history-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px; border-bottom: 1px solid var(--border);
+        }
+        .history-item:last-child { border-bottom: none; }
+        .score-badge { background: var(--primary); color: white; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div id="app">
         
+        <div id="ota-alert" onclick="window.location.reload(true)">
+            <i data-lucide="refresh-cw"></i> ¡Nueva actualización disponible! Toca para actualizar Testaruda.
+        </div>
+
         <div id="screen-home" class="screen active">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                <h1><i data-lucide="book-open"></i> OpoTest</h1>
-                <button class="btn btn-outline btn-small" onclick="showScreen('screen-settings')"><i data-lucide="settings"></i> Ajustes</button>
+                <h1 style="color: var(--primary);"><i data-lucide="brain"></i> Testaruda</h1>
+                <div>
+                    <button class="btn btn-outline btn-sm" onclick="showScreen('screen-history')"><i data-lucide="bar-chart-2"></i></button>
+                    <button class="btn btn-outline btn-sm" onclick="showScreen('screen-settings')"><i data-lucide="settings"></i></button>
+                </div>
             </div>
 
             <div class="card minigame">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                    <h3 style="color: var(--warning); margin:0;"><i data-lucide="zap"></i> Pregunta Aleatoria</h3>
-                    <button class="btn btn-outline btn-small" onclick="loadRandomQuestion()"><i data-lucide="refresh-cw"></i> Otra</button>
-                </div>
-                <p id="random-question-text" style="margin-bottom: 16px; font-size: 16px;"><span class="loader"></span> Conectando con GitHub...</p>
+                <h3 style="color: var(--primary);"><i data-lucide="zap"></i> Calentamiento</h3>
+                <p id="random-question-text" style="margin-bottom: 16px; font-size: 16px;">Cargando pregunta...</p>
                 <div id="random-options"></div>
                 <p id="random-feedback" style="margin-top: 12px; font-weight: 600; font-size: 14px; display: none;"></p>
             </div>
 
             <div class="card" style="text-align: center; padding: 40px 20px;">
-                <h2>¿Listo para estudiar?</h2>
-                <p style="color: var(--text-muted); margin-bottom: 24px;">Configura tu test por temas, cantidad y tiempo.</p>
-                <button class="btn" onclick="showScreen('screen-setup')"><i data-lucide="play-circle"></i> Configurar Nuevo Test</button>
+                <h2>¿A por todas?</h2>
+                <p style="color: var(--text-muted); margin-bottom: 24px;">Configura tu próximo test y ponte a prueba.</p>
+                <button class="btn" onclick="showScreen('screen-setup')"><i data-lucide="play-circle"></i> Nuevo Test</button>
             </div>
         </div>
 
         <div id="screen-setup" class="screen">
-            <div class="top-nav">
-                <button class="back-btn" onclick="showScreen('screen-home')"><i data-lucide="arrow-left"></i> Inicio</button>
-                <h2><i data-lucide="sliders"></i> Setup</h2>
-            </div>
-            
+            <h2><i data-lucide="sliders"></i> Configurar Test</h2>
             <div class="card">
                 <div class="form-group">
-                    <label>1. Selecciona los Temas (Archivos CSV)</label>
+                    <label><strong>1. Selecciona los Temas</strong></label>
                     <div id="themes-container">
-                        <p style="text-align: center; color: var(--text-muted);"><span class="loader"></span> Cargando carpetas desde GitHub...</p>
+                        <div class="theme-group">
+                            <div class="theme-title" onclick="toggleTheme('tema1')"><i data-lucide="folder"></i> Tema 1: Constitución</div>
+                            <div class="csv-list" id="tema1">
+                                <label><input type="checkbox" value="t1_b1.csv"> Cuestiones Generales</label>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="form-group" style="margin-top: 24px;">
-                    <label>2. Número de Preguntas</label>
+                    <label><strong>2. Número de Preguntas</strong> (0 para todas)</label>
                     <input type="number" id="num-questions" value="20" min="0">
-                    <small style="color: var(--text-muted);">Pon 0 para hacer todas las seleccionadas. Si elijes menos del total, se barajarán.</small>
                 </div>
 
                 <div style="display: flex; gap: 12px; margin-top: 24px;">
-                    <button class="btn" style="flex: 1; justify-content: center;" onclick="startTest()" id="btn-start"><i data-lucide="play"></i> Empezar Test</button>
+                    <button class="btn btn-outline" onclick="showScreen('screen-home')">Volver</button>
+                    <button class="btn" style="flex: 1; justify-content: center;" onclick="startTest()">Empezar Test</button>
                 </div>
             </div>
         </div>
 
         <div id="screen-test" class="screen">
             <div class="test-header">
-                <div id="test-progress">Pregunta 1 de X</div>
+                <div id="test-progress">Pregunta 1 de 20</div>
                 <div class="timer" id="test-timer"><i data-lucide="clock"></i> 00:00</div>
             </div>
             
             <div class="card">
-                <h2 id="question-text" style="font-size: 18px; line-height: 1.5;">Cargando...</h2>
+                <h2 id="question-text" style="font-size: 18px; line-height: 1.5;">...</h2>
                 <div id="test-options" style="margin-top: 24px;"></div>
             </div>
             
             <div style="display: flex; justify-content: space-between; margin-top: 20px;">
-                <button class="btn btn-outline" style="color: var(--danger); border-color: var(--danger);" onclick="abandonTest()"><i data-lucide="x-circle"></i> Abandonar</button>
+                <button class="btn btn-outline" style="color: var(--danger); border-color: var(--danger);" onclick="abandonTest()">Abandonar</button>
                 <button class="btn" onclick="nextQuestion()" id="btn-next" disabled>Siguiente <i data-lucide="chevron-right"></i></button>
             </div>
         </div>
 
         <div id="screen-results" class="screen">
-            <div class="top-nav">
-                <button class="back-btn" onclick="showScreen('screen-home')"><i data-lucide="home"></i> Volver al Inicio</button>
-            </div>
-
             <div class="card" style="text-align: center;">
                 <h2><i data-lucide="award"></i> Resultados del Test</h2>
                 <div style="font-size: 48px; font-weight: 600; color: var(--primary); margin: 20px 0;" id="result-score">--/--</div>
-                <p id="result-stats" style="color: var(--text-muted); margin-bottom: 24px;"></p>
-                
-                <div style="display: flex; gap: 12px; justify-content: center;">
-                    <button class="btn" onclick="toggleReview()"><i data-lucide="file-search"></i> Ver Revisión Completa</button>
-                    <button class="btn btn-outline" onclick="exportPDF()"><i data-lucide="download"></i> PDF</button>
-                </div>
+                <p id="result-stats" style="color: var(--text-muted); margin-bottom: 24px;">Has tardado X minutos.</p>
+                <button class="btn" onclick="showScreen('screen-home')"><i data-lucide="home"></i> Volver al Inicio</button>
             </div>
+        </div>
 
-            <div id="review-container" class="card" style="display: none; margin-top: 20px;">
-                <h2 style="margin-bottom: 20px;"><i data-lucide="check-square"></i> Revisión del Test</h2>
-                <div id="review-content"></div>
+        <div id="screen-history" class="screen">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h2><i data-lucide="bar-chart-2"></i> Mi Progreso</h2>
+                <button class="btn btn-outline btn-sm" onclick="showScreen('screen-home')">Volver</button>
+            </div>
+            <div class="card" id="history-container">
+                <p style="color: var(--text-muted); text-align: center;">Aún no hay tests registrados.</p>
             </div>
         </div>
 
         <div id="screen-settings" class="screen">
-            <div class="top-nav">
-                <button class="back-btn" onclick="showScreen('screen-home')"><i data-lucide="arrow-left"></i> Inicio</button>
-                <h2><i data-lucide="settings"></i> Ajustes</h2>
-            </div>
-            
+            <h2><i data-lucide="settings"></i> Ajustes y Backup</h2>
             <div class="card">
-                <div class="form-group">
-                    <label>Repositorio de GitHub (Usuario/Repo)</label>
-                    <input type="text" id="set-repo" value="larafuzas/Testaruda" disabled>
-                    <small style="color:var(--text-muted);">Fijado en la programación.</small>
-                </div>
                 <div class="form-group">
                     <label>Tiempo por pregunta (segundos)</label>
                     <input type="number" id="set-time" value="60">
                 </div>
-                <div class="form-group">
-                    <label>Modo de Corrección</label>
-                    <select id="set-correction">
-                        <option value="live">En vivo (Pregunta a pregunta)</option>
-                        <option value="end">Al finalizar el test</option>
-                    </select>
+                <button class="btn" style="width: 100%; justify-content: center; margin-bottom: 24px;" onclick="saveSettings()">Guardar Ajustes</button>
+                
+                <hr style="border: none; border-top: 1px solid var(--border); margin-bottom: 24px;">
+                
+                <h3 style="font-size: 16px;"><i data-lucide="database"></i> Copia de Seguridad</h3>
+                <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 16px;">Exporta tu progreso para no perderlo o impórtalo en otro dispositivo.</p>
+                
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn btn-outline" style="flex: 1; justify-content: center;" onclick="exportData()"><i data-lucide="download"></i> Exportar</button>
+                    <button class="btn btn-outline" style="flex: 1; justify-content: center;" onclick="document.getElementById('import-file').click()"><i data-lucide="upload"></i> Importar</button>
+                    <input type="file" id="import-file" style="display: none;" accept=".json" onchange="importData(event)">
                 </div>
-                <button class="btn" style="width: 100%; justify-content: center; margin-top: 16px;" onclick="saveSettings()">Guardar Ajustes</button>
             </div>
+            <button class="btn btn-outline" style="width: 100%; justify-content: center;" onclick="showScreen('screen-home')">Volver al Inicio</button>
         </div>
 
     </div>
@@ -213,112 +249,26 @@
     <script>
         lucide.createIcons();
 
-        // VARIABLES Y ESTADOS
-        const REPO_PATH = 'larafuzas/Testaruda';
-        let allCsvFiles = []; // Guardará las rutas a los CSV
-        
-        let appSettings = { timePerQuestion: 60, correctionMode: 'live' };
+        // VARIABLES Y CONFIGURACIÓN BASE
+        const GITHUB_REPO = 'tu-usuario/tu-repo'; // Fijo en el código. No se pide en ajustes.
+        let appSettings = { timePerQuestion: 60 };
         let timerInterval;
         let timeRemaining = 0;
-        
-        let currentTest = {
-            questions: [],
-            currentIndex: 0,
-            correctAnswers: 0,
-            timeSpent: 0
-        };
+        let totalTimeSpent = 0;
+        let currentTest = { questions: [], currentIndex: 0, correctAnswers: 0 };
+        let activityLog = JSON.parse(localStorage.getItem('testaruda_log')) || [];
 
-        // CARGA INICIAL: Conectar a GitHub API
-        window.onload = async () => {
-            loadSettings();
-            await fetchRepoStructure();
-            loadRandomQuestion();
-        };
+        // Inicializar Ajustes
+        if(localStorage.getItem('testaruda_settings')) {
+            appSettings = JSON.parse(localStorage.getItem('testaruda_settings'));
+            document.getElementById('set-time').value = appSettings.timePerQuestion;
+        }
 
+        // Navegación
         function showScreen(screenId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
-            window.scrollTo(0,0);
-        }
-
-        function loadSettings() {
-            let saved = localStorage.getItem('opoTestSettings');
-            if(saved) {
-                appSettings = JSON.parse(saved);
-                document.getElementById('set-time').value = appSettings.timePerQuestion;
-                document.getElementById('set-correction').value = appSettings.correctionMode;
-            }
-        }
-
-        function saveSettings() {
-            appSettings.timePerQuestion = parseInt(document.getElementById('set-time').value) || 60;
-            appSettings.correctionMode = document.getElementById('set-correction').value;
-            localStorage.setItem('opoTestSettings', JSON.stringify(appSettings));
-            alert('Ajustes guardados.');
-            showScreen('screen-home');
-        }
-
-        // --- GITHUB API FETCHING ---
-        async function fetchRepoStructure() {
-            try {
-                // Obtenemos rama por defecto (main o master)
-                const repoInfoRes = await fetch(`https://api.github.com/repos/${REPO_PATH}`);
-                if (!repoInfoRes.ok) throw new Error("No se pudo conectar al repositorio.");
-                const repoInfo = await repoInfoRes.json();
-                const branch = repoInfo.default_branch;
-
-                // Obtenemos el árbol completo
-                const treeRes = await fetch(`https://api.github.com/repos/${REPO_PATH}/git/trees/${branch}?recursive=1`);
-                const treeData = await treeRes.json();
-
-                // Filtramos solo CSVs dentro de 'Preguntas/'
-                allCsvFiles = treeData.tree.filter(file => file.path.startsWith('Preguntas/') && file.path.endsWith('.csv'));
-
-                buildThemesUI(allCsvFiles, branch);
-
-            } catch (error) {
-                console.error(error);
-                document.getElementById('themes-container').innerHTML = `<p style="color: var(--danger); text-align:center;">Error conectando con GitHub. Revisa que el repositorio sea público y exista la carpeta "Preguntas".</p>`;
-                document.getElementById('random-question-text').innerText = "Error de conexión.";
-            }
-        }
-
-        function buildThemesUI(files, branch) {
-            const container = document.getElementById('themes-container');
-            container.innerHTML = '';
-            
-            if(files.length === 0) {
-                container.innerHTML = '<p style="text-align:center;">No se encontraron archivos CSV en la carpeta Preguntas/.</p>';
-                return;
-            }
-
-            // Agrupar por subcarpeta (Tema)
-            const themes = {};
-            files.forEach(file => {
-                const parts = file.path.split('/'); // ["Preguntas", "Tema 1", "bloque1.csv"]
-                const themeName = parts.length > 2 ? parts[1] : 'General';
-                if(!themes[themeName]) themes[themeName] = [];
-                // Guardamos el Raw URL para descargarlo luego
-                const rawUrl = `https://raw.githubusercontent.com/${REPO_PATH}/${branch}/${file.path}`;
-                themes[themeName].push({ name: parts[parts.length-1], url: rawUrl });
-            });
-
-            // Construir HTML
-            Object.keys(themes).forEach((themeName, index) => {
-                let groupHTML = `
-                    <div class="theme-group">
-                        <div class="theme-title" onclick="toggleTheme('t_${index}')">
-                            <i data-lucide="folder"></i> ${themeName}
-                        </div>
-                        <div class="csv-list" id="t_${index}" style="display:none;">
-                `;
-                themes[themeName].forEach(csv => {
-                    groupHTML += `<label class="csv-item"><input type="checkbox" class="csv-checkbox" value="${csv.url}"> ${csv.name}</label>`;
-                });
-                groupHTML += `</div></div>`;
-                container.innerHTML += groupHTML;
-            });
-            lucide.createIcons();
+            if(screenId === 'screen-history') renderHistory();
         }
 
         function toggleTheme(id) {
@@ -326,57 +276,27 @@
             el.style.display = el.style.display === 'none' ? 'flex' : 'none';
         }
 
-        // --- LÓGICA DE TEST ---
-        async function startTest() {
-            const checkboxes = document.querySelectorAll('.csv-checkbox:checked');
-            if(checkboxes.length === 0) return alert('Selecciona al menos un archivo CSV.');
+        function saveSettings() {
+            appSettings.timePerQuestion = parseInt(document.getElementById('set-time').value) || 60;
+            localStorage.setItem('testaruda_settings', JSON.stringify(appSettings));
+            showScreen('screen-home');
+        }
 
-            const btnStart = document.getElementById('btn-start');
-            btnStart.innerHTML = '<span class="loader"></span> Preparando...';
-            btnStart.disabled = true;
-
-            let allQuestions = [];
-
-            try {
-                // Descargar y parsear los CSV seleccionados
-                for(let box of checkboxes) {
-                    const response = await fetch(box.value);
-                    const csvText = await response.text();
-                    const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
-                    allQuestions = allQuestions.concat(parsed.data);
-                }
-
-                // Filtrar preguntas vacías
-                allQuestions = allQuestions.filter(q => q.pregunta && q.correcta);
-
-                if(allQuestions.length === 0) throw new Error("Archivos vacíos o mal formateados.");
-
-                // Barajar y cortar según cantidad
-                let requestedNum = parseInt(document.getElementById('num-questions').value);
-                allQuestions.sort(() => Math.random() - 0.5); // Shuffle básico
-                if(requestedNum > 0 && requestedNum < allQuestions.length) {
-                    allQuestions = allQuestions.slice(0, requestedNum);
-                }
-
-                // Iniciar estado
-                currentTest.questions = allQuestions.map(q => ({ ...q, userAnswer: null }));
-                currentTest.currentIndex = 0;
-                currentTest.correctAnswers = 0;
-                currentTest.timeSpent = 0;
-                
-                timeRemaining = currentTest.questions.length * appSettings.timePerQuestion;
-                startTimer();
-
-                renderTestQuestion();
-                showScreen('screen-test');
-
-            } catch(e) {
-                alert('Error al cargar las preguntas: ' + e.message);
-            } finally {
-                btnStart.innerHTML = '<i data-lucide="play"></i> Empezar Test';
-                btnStart.disabled = false;
-                lucide.createIcons();
-            }
+        // -------- LÓGICA DEL TEST -------- //
+        function startTest() {
+            currentTest.questions = [
+                { id: 1, pregunta: "La Constitución Española fue sancionada el:", a: "29 de diciembre de 1978", b: "27 de diciembre de 1978", c: "6 de diciembre de 1978", d: "31 de octubre de 1978", correcta: "B" },
+                { id: 2, pregunta: "El Estado de Derecho se manifiesta en:", a: "Garantía del principio de legalidad", b: "Respeto a los derechos fundamentales", c: "Sometimiento de la Administración al ordenamiento jurídico", d: "Todas son correctas", correcta: "D" }
+            ];
+            
+            currentTest.currentIndex = 0;
+            currentTest.correctAnswers = 0;
+            totalTimeSpent = 0;
+            timeRemaining = currentTest.questions.length * appSettings.timePerQuestion;
+            
+            startTimer();
+            renderTestQuestion();
+            showScreen('screen-test');
         }
 
         function renderTestQuestion() {
@@ -388,147 +308,70 @@
             optionsDiv.innerHTML = '';
             
             ['a', 'b', 'c', 'd'].forEach(letter => {
-                if(!q[letter]) return; // Evitar opciones nulas si no existen
                 let btn = document.createElement('button');
                 btn.className = 'option-btn';
                 btn.innerText = `${letter.toUpperCase()}) ${q[letter]}`;
                 btn.onclick = () => selectTestOption(btn, letter.toUpperCase(), q.correcta);
                 optionsDiv.appendChild(btn);
             });
-            
             document.getElementById('btn-next').disabled = true;
         }
 
         function selectTestOption(btn, selected, correct) {
             const buttons = document.querySelectorAll('#test-options .option-btn');
-            const isLive = appSettings.correctionMode === 'live';
-            
-            // Guardar respuesta del usuario
-            currentTest.questions[currentTest.currentIndex].userAnswer = selected;
+            buttons.forEach(b => b.style.pointerEvents = 'none');
 
-            buttons.forEach(b => b.classList.remove('selected'));
-
-            if (isLive) {
-                // MODO EN VIVO
-                buttons.forEach(b => b.style.pointerEvents = 'none'); // Bloquear
-                if(selected === correct) {
-                    btn.classList.add('correct');
-                    currentTest.correctAnswers++;
-                } else {
-                    btn.classList.add('wrong');
-                    buttons.forEach(b => { if(b.innerText.startsWith(correct)) b.classList.add('correct'); });
-                }
+            if(selected === correct) {
+                btn.classList.add('correct');
+                currentTest.correctAnswers++;
             } else {
-                // MODO AL FINALIZAR
-                btn.classList.add('selected');
-                // Si cambia de opinión, actualizamos la nota luego al calcular todo al final
+                btn.classList.add('wrong');
+                buttons.forEach(b => { if(b.innerText.startsWith(correct)) b.classList.add('correct'); });
             }
-
             document.getElementById('btn-next').disabled = false;
         }
 
         function nextQuestion() {
             currentTest.currentIndex++;
-            if(currentTest.currentIndex >= currentTest.questions.length) {
-                endTest();
-            } else {
-                renderTestQuestion();
-            }
+            if(currentTest.currentIndex >= currentTest.questions.length) endTest();
+            else renderTestQuestion();
         }
 
         function endTest() {
             clearInterval(timerInterval);
+            let mins = Math.floor(totalTimeSpent / 60);
+            let secs = totalTimeSpent % 60;
             
-            // Si el modo era "al final", calcular aciertos ahora
-            if(appSettings.correctionMode === 'end') {
-                currentTest.correctAnswers = 0;
-                currentTest.questions.forEach(q => {
-                    if(q.userAnswer === q.correcta) currentTest.correctAnswers++;
-                });
-            }
-
-            let mins = Math.floor(currentTest.timeSpent / 60);
-            let secs = currentTest.timeSpent % 60;
+            // Guardar en el registro
+            activityLog.push({
+                date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(),
+                score: currentTest.correctAnswers,
+                total: currentTest.questions.length,
+                time: `${mins}m ${secs}s`
+            });
+            localStorage.setItem('testaruda_log', JSON.stringify(activityLog));
 
             document.getElementById('result-score').innerText = `${currentTest.correctAnswers} / ${currentTest.questions.length}`;
-            document.getElementById('result-stats').innerText = `Has empleado ${mins}m ${secs}s en completar el test.`;
-            
-            // Ocultar la revisión al principio
-            document.getElementById('review-container').style.display = 'none';
-            buildReview();
-
+            document.getElementById('result-stats').innerText = `Has tardado ${mins} minutos y ${secs} segundos.`;
             showScreen('screen-results');
         }
 
         function abandonTest() {
-            if(confirm("¿Seguro que quieres abandonar? Se perderá el progreso.")) {
+            if(confirm("¿Seguro que quieres abandonar? No se guardará el progreso.")) {
                 clearInterval(timerInterval);
                 showScreen('screen-home');
             }
         }
 
-        // --- REVISIÓN Y PDF ---
-        function toggleReview() {
-            const rev = document.getElementById('review-container');
-            rev.style.display = rev.style.display === 'none' ? 'block' : 'none';
-            // Scrollear hacia abajo suavemente
-            if(rev.style.display === 'block') {
-                setTimeout(() => window.scrollTo({ top: rev.offsetTop, behavior: 'smooth' }), 100);
-            }
-        }
-
-        function buildReview() {
-            const container = document.getElementById('review-content');
-            let html = '';
-            
-            currentTest.questions.forEach((q, i) => {
-                let isCorrect = q.userAnswer === q.correcta;
-                let userTxt = q.userAnswer ? `${q.userAnswer}) ${q[q.userAnswer.toLowerCase()]}` : "No contestada";
-                let corrTxt = `${q.correcta}) ${q[q.correcta.toLowerCase()]}`;
-                
-                let iconUser = isCorrect ? `<i data-lucide="check-circle" style="color:var(--success); width:18px;"></i>` : `<i data-lucide="x-circle" style="color:var(--danger); width:18px;"></i>`;
-
-                html += `
-                <div class="review-item">
-                    <div class="review-q">${i+1}. ${q.pregunta}</div>
-                    <div class="review-ans" style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}">
-                        ${iconUser} Tu respuesta: ${userTxt}
-                    </div>
-                    ${!isCorrect ? `<div class="review-ans" style="color: var(--primary);"><i data-lucide="arrow-right" style="width:18px;"></i> Correcta: ${corrTxt}</div>` : ''}
-                </div>`;
-            });
-            
-            container.innerHTML = html;
-            lucide.createIcons();
-        }
-
-        function exportPDF() {
-            const element = document.getElementById('review-container');
-            element.style.display = 'block'; // Asegurar que está visible
-            
-            let opt = {
-                margin:       10,
-                filename:     `OpoTest_Revision_${new Date().toLocaleDateString()}.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2 },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-
-            html2pdf().set(opt).from(element).save();
-        }
-
-        // --- TEMPORIZADOR ---
+        // -------- TEMPORIZADOR -------- //
         function startTimer() {
             clearInterval(timerInterval);
             updateTimerDisplay();
             timerInterval = setInterval(() => {
                 timeRemaining--;
-                currentTest.timeSpent++;
+                totalTimeSpent++;
                 updateTimerDisplay();
-                if(timeRemaining <= 0) {
-                    alert("¡Tiempo agotado!");
-                    endTest();
-                }
+                if(timeRemaining <= 0) { alert("¡Tiempo agotado!"); endTest(); }
             }, 1000);
         }
 
@@ -539,69 +382,97 @@
             lucide.createIcons();
         }
 
-        // --- MINIJUEGO (Aleatorio desde GitHub) ---
-        async function loadRandomQuestion() {
-            const txtLabel = document.getElementById('random-question-text');
-            const optionsDiv = document.getElementById('random-options');
-            const feedback = document.getElementById('random-feedback');
-            
-            txtLabel.innerHTML = '<span class="loader"></span> Buscando pregunta...';
-            optionsDiv.innerHTML = '';
-            feedback.style.display = 'none';
-
-            if(allCsvFiles.length === 0) {
-                txtLabel.innerText = "No hay archivos CSV disponibles para el minijuego.";
+        // -------- HISTORIAL (Actividad) -------- //
+        function renderHistory() {
+            const container = document.getElementById('history-container');
+            if(activityLog.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted); text-align: center;">Aún no hay tests registrados.</p>';
                 return;
             }
-
-            try {
-                // Elegir archivo al azar
-                const randomFile = allCsvFiles[Math.floor(Math.random() * allCsvFiles.length)];
-                
-                // Obtener URL cruda (asumiendo que ya obtuvimos el branch en fetchRepoStructure, pero usaremos el truco de raw.githubusercontent)
-                // Para simplificar, buscamos la URL que guardamos en themes
-                const checkboxes = document.querySelectorAll('.csv-checkbox');
-                let fileUrl = Array.from(checkboxes).find(cb => cb.value.includes(randomFile.path))?.value;
-                
-                if(!fileUrl) throw new Error("No se pudo resolver la URL del CSV.");
-
-                const res = await fetch(fileUrl);
-                const csvTxt = await res.text();
-                const parsed = Papa.parse(csvTxt, { header: true, skipEmptyLines: true });
-                const questions = parsed.data.filter(q => q.pregunta && q.correcta);
-                
-                if(questions.length === 0) throw new Error("Archivo vacío.");
-
-                // Pregunta al azar
-                const q = questions[Math.floor(Math.random() * questions.length)];
-
-                txtLabel.innerText = q.pregunta;
-                
-                ['a', 'b', 'c', 'd'].forEach(letter => {
-                    if(!q[letter]) return;
-                    let btn = document.createElement('button');
-                    btn.className = 'option-btn';
-                    btn.innerText = `${letter.toUpperCase()}) ${q[letter]}`;
-                    btn.onclick = () => {
-                        if(letter.toUpperCase() === q.correcta) {
-                            btn.classList.add('correct');
-                            feedback.innerText = "¡Correcto! ✅";
-                            feedback.style.color = "var(--success)";
-                        } else {
-                            btn.classList.add('wrong');
-                            feedback.innerText = `Fallaste ❌. La correcta era la ${q.correcta}.`;
-                            feedback.style.color = "var(--danger)";
-                        }
-                        feedback.style.display = 'block';
-                        optionsDiv.querySelectorAll('.option-btn').forEach(b => b.style.pointerEvents = 'none');
-                    };
-                    optionsDiv.appendChild(btn);
-                });
-
-            } catch(e) {
-                txtLabel.innerText = "Error cargando minijuego: " + e.message;
-            }
+            container.innerHTML = activityLog.slice().reverse().map(log => `
+                <div class="history-item">
+                    <div>
+                        <div style="font-weight: 600; margin-bottom: 4px;">Test Finalizado</div>
+                        <div style="font-size: 12px; color: var(--text-muted);"><i data-lucide="calendar" style="width:12px;"></i> ${log.date} | <i data-lucide="clock" style="width:12px;"></i> ${log.time}</div>
+                    </div>
+                    <div class="score-badge">${log.score}/${log.total}</div>
+                </div>
+            `).join('');
+            lucide.createIcons();
         }
+
+        // -------- BACKUP (Exportar / Importar) -------- //
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(activityLog));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", "testaruda_backup.json");
+            dlAnchorElem.click();
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedLog = JSON.parse(e.target.result);
+                    if(Array.isArray(importedLog)) {
+                        activityLog = importedLog;
+                        localStorage.setItem('testaruda_log', JSON.stringify(activityLog));
+                        alert("¡Historial restaurado con éxito!");
+                    } else throw new Error("Formato inválido");
+                } catch(err) {
+                    alert("Error al leer el archivo de copia de seguridad.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // -------- MINIJUEGO -------- //
+        function loadMinigame() {
+            let q = { pregunta: "¿De cuántos artículos consta la Constitución Española?", a: "166", b: "167", c: "168", d: "169", correcta: "D" };
+            document.getElementById('random-question-text').innerText = q.pregunta;
+            const optionsDiv = document.getElementById('random-options');
+            optionsDiv.innerHTML = '';
+            document.getElementById('random-feedback').style.display = 'none';
+
+            ['a', 'b', 'c', 'd'].forEach(letter => {
+                let btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = `${letter.toUpperCase()}) ${q[letter]}`;
+                btn.onclick = () => {
+                    if(letter.toUpperCase() === q.correcta) {
+                        btn.classList.add('correct');
+                        document.getElementById('random-feedback').innerText = "¡Correcto! ✅";
+                        document.getElementById('random-feedback').style.color = "var(--success)";
+                    } else {
+                        btn.classList.add('wrong');
+                        document.getElementById('random-feedback').innerText = `Fallaste ❌. La correcta era la ${q.correcta}.`;
+                        document.getElementById('random-feedback').style.color = "var(--danger)";
+                    }
+                    document.getElementById('random-feedback').style.display = 'block';
+                    optionsDiv.querySelectorAll('.option-btn').forEach(b => b.style.pointerEvents = 'none');
+                };
+                optionsDiv.appendChild(btn);
+            });
+        }
+
+        // -------- ACTUALIZACIONES OTA (Simulador) -------- //
+        function checkOTAUpdates() {
+            // Lógica que conectaremos con la API de Github para ver si hay un nuevo commit
+            // Por ahora, simulamos que a los 5 segundos avisa de una actualización
+            /* setTimeout(() => {
+                document.getElementById('ota-alert').style.display = 'block';
+            }, 5000); 
+            */
+        }
+
+        // Iniciar
+        window.onload = () => {
+            loadMinigame();
+            checkOTAUpdates();
+        };
     </script>
 </body>
 </html>
