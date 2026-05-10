@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Testaruda</title>
+    <title>Testaruda - Oposiciones</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -11,7 +11,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
-        /* VARIABLES DE DISEÑO */
         :root {
             --primary: #4F46E5;
             --primary-hover: #4338CA;
@@ -27,514 +26,347 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body { font-family: var(--font); background-color: var(--bg-color); color: var(--text-main); display: flex; justify-content: center; min-height: 100vh; padding: 20px; }
+        body { font-family: var(--font); background-color: var(--bg-color); color: var(--text-main); display: flex; justify-content: center; min-height: 100vh; padding: 20px; line-height: 1.5; }
         #app { width: 100%; max-width: 800px; position: relative; }
 
-        /* Pantallas */
-        .screen { display: none; animation: fadeIn 0.3s ease; }
+        .screen { display: none; animation: fadeIn 0.3s ease-out; }
         .screen.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Tarjetas y Botones */
-        .card { background: var(--card-bg); border-radius: var(--radius); padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-bottom: 20px; border: 1px solid var(--border); }
-        h1, h2, h3 { font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .card { background: var(--card-bg); border-radius: var(--radius); padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid var(--border); }
+        h1, h2, h3 { font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
         
-        .btn { background-color: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; justify-content: center; }
+        .btn { background-color: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; justify-content: center; transition: 0.2s; text-decoration: none; }
         .btn:hover { background-color: var(--primary-hover); }
         .btn-outline { background: transparent; color: var(--text-main); border: 1px solid var(--border); }
         .btn-outline:hover { background: var(--bg-color); }
         .btn-sm { padding: 8px 16px; font-size: 14px; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-        /* Opciones de Test */
-        .minigame { border-left: 4px solid var(--primary); }
-        .option-btn { display: block; width: 100%; text-align: left; padding: 12px 16px; margin-bottom: 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--card-bg); cursor: pointer; transition: 0.2s; font-size: 15px; }
+        #ota-alert { display: none; background: var(--success); color: white; padding: 12px; border-radius: 10px; margin-bottom: 20px; text-align: center; font-weight: 600; cursor: pointer; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
+
+        .option-btn { display: block; width: 100%; text-align: left; padding: 14px 18px; margin-bottom: 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--card-bg); cursor: pointer; font-size: 15px; transition: 0.2s; }
         .option-btn:hover { border-color: var(--primary); background: #EEF2FF; }
-        .option-btn.selected { background: #E0E7FF; border-color: var(--primary); color: var(--primary-hover); font-weight: 600; }
-        .option-btn.correct { background: #D1FAE5; border-color: var(--success); color: #065F46; }
+        .option-btn.selected { background: #E0E7FF; border-color: var(--primary); color: var(--primary-hover); font-weight: 600; border-width: 2px; }
+        .option-btn.correct { background: #D1FAE5; border-color: var(--success); color: #065F46; font-weight: 600; }
         .option-btn.wrong { background: #FEE2E2; border-color: var(--danger); color: #991B1B; }
 
-        /* Formularios y Árboles */
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-muted); }
-        input[type="number"], select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-family: var(--font); font-size: 15px; background: white; }
-        .theme-group { margin-bottom: 16px; }
-        .theme-title { font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 8px; background: #F3F4F6; border-radius: 6px; }
-        .csv-list { margin-left: 24px; margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+        .theme-group { margin-bottom: 12px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+        .theme-header { background: #F3F4F6; padding: 14px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 600; }
+        .csv-list { padding: 14px; display: none; flex-direction: column; gap: 10px; background: white; }
+        .csv-item { display: flex; align-items: center; gap: 12px; font-size: 14px; cursor: pointer; padding: 4px 0; }
 
-        /* Componentes de Test y Revisión */
-        .test-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-weight: 600; }
-        .timer { display: flex; align-items: center; gap: 6px; color: var(--danger); font-variant-numeric: tabular-nums; }
-        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid var(--border); }
-        .history-item:last-child { border-bottom: none; }
-        .score-badge { background: var(--primary); color: white; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
-        
-        .review-q { margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px dashed var(--border); }
-        .review-q:last-child { border-bottom: none; }
-        .r-option { margin: 4px 0; padding: 8px; border-radius: 6px; font-size: 14px; }
-        .r-correct { background: #D1FAE5; color: #065F46; font-weight: 600; }
-        .r-wrong { background: #FEE2E2; color: #991B1B; text-decoration: line-through; }
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid var(--border); }
+        .score-badge { background: var(--primary); color: white; padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; }
+        .timer { font-variant-numeric: tabular-nums; color: var(--danger); font-weight: 600; display: flex; align-items: center; gap: 5px; }
+
+        .review-q { margin-bottom: 30px; page-break-inside: avoid; }
+        .r-option { padding: 8px 12px; border-radius: 6px; margin: 4px 0; font-size: 14px; border: 1px solid transparent; }
+        .r-correct { background: #D1FAE5; border-color: var(--success); }
+        .r-wrong { background: #FEE2E2; border-color: var(--danger); }
     </style>
 </head>
 <body>
 
     <div id="app">
+        <div id="ota-alert" onclick="forceOTAUpdate()">
+            <i data-lucide="refresh-cw"></i> ¡Actualización disponible! Toca para recargar.
+        </div>
+
         <div id="screen-home" class="screen active">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                <h1 style="color: var(--primary);"><i data-lucide="brain"></i> Testaruda</h1>
-                <div>
+                <h1 style="color: var(--primary); margin:0;"><i data-lucide="brain"></i> Testaruda</h1>
+                <div style="display: flex; gap: 8px;">
                     <button class="btn btn-outline btn-sm" onclick="showScreen('screen-history')"><i data-lucide="bar-chart-2"></i></button>
                     <button class="btn btn-outline btn-sm" onclick="showScreen('screen-settings')"><i data-lucide="settings"></i></button>
                 </div>
             </div>
 
-            <div class="card minigame">
-                <h3 style="color: var(--primary);"><i data-lucide="zap"></i> Calentamiento</h3>
-                <p id="random-question-text" style="margin-bottom: 16px; font-size: 16px;">Cargando pregunta...</p>
+            <div class="card" style="border-left: 5px solid var(--primary);">
+                <h3 style="color: var(--primary);"><i data-lucide="zap"></i> Calentamiento Real</h3>
+                <p id="random-question-text" style="margin-bottom: 15px; font-style: italic; color: var(--text-muted);">Sincronizando preguntas con GitHub...</p>
                 <div id="random-options"></div>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
-                    <p id="random-feedback" style="font-weight: 600; font-size: 14px; display: none; margin: 0;"></p>
-                    <button id="btn-next-random" class="btn btn-sm btn-outline" style="display: none;" onclick="loadMinigame()">Otra pregunta <i data-lucide="refresh-cw" style="width: 14px;"></i></button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+                    <p id="random-feedback" style="display:none; font-weight: 600; font-size: 14px;"></p>
+                    <button id="btn-next-random" class="btn btn-sm btn-outline" style="display:none;" onclick="loadMinigame()">Otra pregunta <i data-lucide="arrow-right"></i></button>
                 </div>
             </div>
 
             <div class="card" style="text-align: center; padding: 40px 20px;">
-                <h2>¿A por todas?</h2>
-                <p style="color: var(--text-muted); margin-bottom: 24px;">Configura tu próximo test y ponte a prueba.</p>
-                <button class="btn" onclick="showScreen('screen-setup')"><i data-lucide="play-circle"></i> Nuevo Test</button>
+                <h2>¿Preparado para estudiar?</h2>
+                <p style="color: var(--text-muted); margin-bottom: 25px;">Selecciona tus temas y ponte a prueba.</p>
+                <button class="btn" style="width: 100%;" onclick="openSetup()">Configurar Test <i data-lucide="play-circle"></i></button>
             </div>
         </div>
 
         <div id="screen-setup" class="screen">
-            <h2><i data-lucide="sliders"></i> Configurar Test</h2>
-            <div class="card">
+            <h2><i data-lucide="sliders"></i> Selección de Temas</h2>
+            <div id="themes-loader" style="text-align:center; padding:20px; color:var(--text-muted);"><i data-lucide="loader-2"></i> Cargando temas...</div>
+            <div id="themes-container"></div>
+            
+            <div class="card" style="margin-top: 20px;">
                 <div class="form-group">
-                    <label><strong>1. Selecciona los Temas</strong></label>
-                    <div id="themes-container">
-                        <div class="theme-group">
-                            <div class="theme-title" onclick="toggleTheme('tema1')"><i data-lucide="folder"></i> Tema 1: Constitución</div>
-                            <div class="csv-list" id="tema1">
-                                <label><input type="checkbox" value="t1_b1.csv"> Cuestiones Generales</label>
-                            </div>
-                        </div>
-                    </div>
+                    <label style="display:block; margin-bottom:10px; font-weight:600;">Nº de preguntas (0 = todas)</label>
+                    <input type="number" id="num-questions" value="20" style="width:100%; padding:12px; border:1px solid var(--border); border-radius:8px;">
                 </div>
-
-                <div class="form-group" style="margin-top: 24px;">
-                    <label><strong>2. Número de Preguntas</strong> (0 para todas)</label>
-                    <input type="number" id="num-questions" value="20" min="0">
-                </div>
-
-                <div style="display: flex; gap: 12px; margin-top: 24px;">
-                    <button class="btn btn-outline" onclick="showScreen('screen-home')">Volver</button>
-                    <button class="btn" style="flex: 1;" onclick="startTest()">Empezar Test</button>
+                <div style="display: flex; gap: 12px; margin-top: 25px;">
+                    <button class="btn btn-outline" onclick="showScreen('screen-home')" style="flex:1;">Volver</button>
+                    <button class="btn" onclick="startTest()" style="flex:2;">Empezar Test <i data-lucide="arrow-right"></i></button>
                 </div>
             </div>
         </div>
 
         <div id="screen-test" class="screen">
-            <div class="test-header">
-                <div id="test-progress">Pregunta 1 de 20</div>
-                <div class="timer" id="test-timer"><i data-lucide="clock"></i> 00:00</div>
+            <div class="test-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <div id="test-progress" style="font-weight:600;">Pregunta --</div>
+                <div id="test-timer" class="timer"><i data-lucide="clock"></i> 00:00</div>
             </div>
-            
             <div class="card">
-                <h2 id="question-text" style="font-size: 18px; line-height: 1.5;">...</h2>
-                <div id="test-options" style="margin-top: 24px;"></div>
+                <h2 id="question-text" style="font-size: 18px; line-height: 1.5;"></h2>
+                <div id="test-options" style="margin-top: 25px;"></div>
             </div>
-            
-            <div style="display: flex; justify-content: space-between; margin-top: 20px;">
-                <div>
-                    <button class="btn btn-outline" style="color: var(--danger); border-color: var(--danger);" onclick="abandonTest()">Abandonar</button>
-                </div>
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-outline" id="btn-prev" onclick="prevQuestion()" style="display: none;"><i data-lucide="chevron-left"></i> Anterior</button>
-                    <button class="btn" onclick="nextQuestion()" id="btn-next" disabled>Siguiente <i data-lucide="chevron-right"></i></button>
+            <div style="display: flex; justify-content: space-between;">
+                <button class="btn btn-outline" style="color: var(--danger); border-color: var(--danger);" onclick="abandonTest()">Abandonar</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-outline" id="btn-prev" onclick="prevQuestion()" style="display: none;"><i data-lucide="chevron-left"></i></button>
+                    <button class="btn" id="btn-next" onclick="nextQuestion()" disabled>Siguiente <i data-lucide="chevron-right"></i></button>
                 </div>
             </div>
         </div>
 
         <div id="screen-results" class="screen">
-            <div class="card" style="text-align: center;">
-                <h2><i data-lucide="award"></i> Resultados del Test</h2>
-                <div style="font-size: 48px; font-weight: 600; color: var(--primary); margin: 20px 0;" id="result-score">--/--</div>
-                <p id="result-stats" style="color: var(--text-muted); margin-bottom: 24px;">Has tardado X minutos.</p>
-                
-                <div style="display: flex; flex-direction: column; gap: 12px; max-width: 300px; margin: 0 auto;">
-                    <button class="btn btn-outline" id="btn-review" onclick="showScreen('screen-review')"><i data-lucide="search"></i> Revisar examen</button>
-                    <button class="btn" onclick="showScreen('screen-home')"><i data-lucide="home"></i> Volver al Inicio</button>
+            <div class="card" style="text-align: center; padding: 40px 20px;">
+                <h2 id="result-title">Test Finalizado</h2>
+                <div id="result-score" style="font-size: 56px; font-weight: 700; color: var(--primary); margin: 20px 0;">0/0</div>
+                <p id="result-stats" style="color: var(--text-muted); margin-bottom: 30px;"></p>
+                <div style="display: flex; flex-direction: column; gap: 12px; max-width: 320px; margin: 0 auto;">
+                    <button class="btn btn-outline" id="btn-review" onclick="showScreen('screen-review')"><i data-lucide="search"></i> Revisar Fallos</button>
+                    <button class="btn" onclick="showScreen('screen-home')"><i data-lucide="home"></i> Ir al Inicio</button>
                 </div>
             </div>
         </div>
 
         <div id="screen-review" class="screen">
-            <div class="test-header">
-                <h2><i data-lucide="check-square"></i> Revisión del Test</h2>
-                <button class="btn btn-outline btn-sm" onclick="showScreen('screen-results')">Volver</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>Revisión</h2>
+                <button class="btn btn-sm btn-outline" onclick="exportToPDF()">PDF <i data-lucide="download"></i></button>
             </div>
-            
-            <div class="card" id="pdf-content">
-                <div id="review-container">
-                    </div>
-            </div>
-            
-            <button class="btn" style="width: 100%;" onclick="exportToPDF()"><i data-lucide="download"></i> Guardar como PDF</button>
+            <div id="pdf-content" class="card"><div id="review-container"></div></div>
+            <button class="btn" style="width: 100%;" onclick="showScreen('screen-results')">Volver</button>
         </div>
 
         <div id="screen-history" class="screen">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h2><i data-lucide="bar-chart-2"></i> Mi Progreso</h2>
-                <button class="btn btn-outline btn-sm" onclick="showScreen('screen-home')">Volver</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>Progreso</h2>
+                <button class="btn btn-sm btn-outline" onclick="showScreen('screen-home')">Volver</button>
             </div>
-            <div class="card" id="history-container"></div>
+            <div class="card" id="history-container" style="padding:0;"></div>
         </div>
 
         <div id="screen-settings" class="screen">
-            <h2><i data-lucide="settings"></i> Ajustes</h2>
+            <h2>Ajustes</h2>
             <div class="card">
-                <div class="form-group">
-                    <label><i data-lucide="check-circle" style="width: 16px; display: inline;"></i> Modo de corrección</label>
-                    <select id="set-correction">
-                        <option value="instant">Al instante (pregunta a pregunta)</option>
-                        <option value="end">Al finalizar el test (simulacro real)</option>
+                <div class="form-group" style="margin-bottom:20px;">
+                    <label style="font-weight:600;">Modo de corrección</label>
+                    <select id="set-correction" style="width:100%; padding:12px; border:1px solid var(--border); border-radius:8px; background:white;">
+                        <option value="instant">Al instante</option>
+                        <option value="end">Al finalizar (Simulacro)</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label><i data-lucide="clock" style="width: 16px; display: inline;"></i> Tiempo por pregunta (segundos)</label>
-                    <input type="number" id="set-time" value="60">
+                    <label style="font-weight:600;">Tiempo/Pregunta (seg)</label>
+                    <input type="number" id="set-time" value="60" style="width:100%; padding:12px; border:1px solid var(--border); border-radius:8px;">
                 </div>
-                <button class="btn" style="width: 100%;" onclick="saveSettings()">Guardar Ajustes</button>
-                
-                <hr style="border: none; border-top: 1px solid var(--border); margin: 24px 0;">
-                
-                <h3 style="font-size: 16px;"><i data-lucide="database"></i> Copia de Seguridad</h3>
-                <div style="display: flex; gap: 12px; margin-top:16px;">
-                    <button class="btn btn-outline" style="flex: 1;" onclick="exportData()"><i data-lucide="download"></i> Exportar</button>
-                    <button class="btn btn-outline" style="flex: 1;" onclick="document.getElementById('import-file').click()"><i data-lucide="upload"></i> Importar</button>
-                    <input type="file" id="import-file" style="display: none;" accept=".json" onchange="importData(event)">
-                </div>
+                <button class="btn" style="width: 100%; margin-top: 20px;" onclick="saveSettings()">Guardar</button>
+                <hr style="margin: 30px 0; border: none; border-top: 1px solid var(--border);">
+                <h3>Sincronización OTT</h3>
+                <button class="btn btn-outline" style="width: 100%; color: var(--success); border-color: var(--success);" onclick="forceOTAUpdate()">Actualizar App <i data-lucide="refresh-cw"></i></button>
             </div>
-            <button class="btn btn-outline" style="width: 100%;" onclick="showScreen('screen-home')">Volver al Inicio</button>
+            <button class="btn btn-outline" style="width: 100%;" onclick="showScreen('screen-home')">Volver</button>
         </div>
-
     </div>
 
     <script>
-        lucide.createIcons();
+        // CONFIGURACIÓN GITHUB
+        const CONFIG = { owner: 'Larafuzas', repo: 'Testaruda', path: 'Preguntas' };
 
-        let appSettings = { timePerQuestion: 60, correctionMode: 'instant' };
-        let timerInterval;
-        let timeRemaining = 0;
-        let totalTimeSpent = 0;
-        let currentTest = { questions: [], currentIndex: 0, correctAnswers: 0 };
+        // ESTADO
+        let appSettings = JSON.parse(localStorage.getItem('testaruda_settings')) || { timePerQuestion: 60, correctionMode: 'instant' };
         let activityLog = JSON.parse(localStorage.getItem('testaruda_log')) || [];
+        let currentTest = { questions: [], currentIndex: 0, correctAnswers: 0, timer: null };
+        let randomPool = []; // Preguntas reales para el minijuego
 
-        // Inicializar Ajustes
-        if(localStorage.getItem('testaruda_settings')) {
-            appSettings = Object.assign(appSettings, JSON.parse(localStorage.getItem('testaruda_settings')));
-        }
-        document.getElementById('set-time').value = appSettings.timePerQuestion;
-        document.getElementById('set-correction').value = appSettings.correctionMode;
-
-        function showScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(screenId).classList.add('active');
-            if(screenId === 'screen-history') renderHistory();
-            if(screenId === 'screen-review') renderReview();
-        }
-
-        function toggleTheme(id) {
-            const el = document.getElementById(id);
-            el.style.display = el.style.display === 'none' ? 'flex' : 'none';
-        }
-
-        function saveSettings() {
-            appSettings.timePerQuestion = parseInt(document.getElementById('set-time').value) || 60;
-            appSettings.correctionMode = document.getElementById('set-correction').value;
-            localStorage.setItem('testaruda_settings', JSON.stringify(appSettings));
-            showScreen('screen-home');
-        }
-
-        // -------- LÓGICA DEL TEST -------- //
-        function startTest() {
-            // Simulamos base de preguntas
-            currentTest.questions = [
-                { id: 1, pregunta: "La Constitución Española fue sancionada el:", a: "29 de diciembre de 1978", b: "27 de diciembre de 1978", c: "6 de diciembre de 1978", d: "31 de octubre de 1978", correcta: "C" },
-                { id: 2, pregunta: "El Estado de Derecho se manifiesta en:", a: "Garantía del principio de legalidad", b: "Respeto a los derechos fundamentales", c: "Sometimiento de la Administración al ordenamiento jurídico", d: "Todas son correctas", correcta: "D" },
-                { id: 3, pregunta: "El Título III está dedicado a:", a: "La Corona", b: "Las Cortes Generales", c: "El Gobierno", d: "Economía y Hacienda", correcta: "B" }
-            ];
-            currentTest.questions.forEach(q => q.userAnswer = null);
-            currentTest.currentIndex = 0;
-            currentTest.correctAnswers = 0;
-            totalTimeSpent = 0;
-            timeRemaining = currentTest.questions.length * appSettings.timePerQuestion;
-            
-            startTimer();
-            renderTestQuestion();
-            showScreen('screen-test');
-        }
-
-        function renderTestQuestion() {
-            let q = currentTest.questions[currentTest.currentIndex];
-            let isEndMode = (appSettings.correctionMode === 'end');
-            
-            document.getElementById('test-progress').innerText = `Pregunta ${currentTest.currentIndex + 1} de ${currentTest.questions.length}`;
-            document.getElementById('question-text').innerText = q.pregunta;
-            
-            // Lógica de botones de navegación (Anterior / Siguiente / Finalizar)
-            document.getElementById('btn-prev').style.display = (isEndMode && currentTest.currentIndex > 0) ? 'inline-flex' : 'none';
-            
-            let btnNext = document.getElementById('btn-next');
-            if(currentTest.currentIndex === currentTest.questions.length - 1) {
-                btnNext.innerHTML = 'Finalizar Test <i data-lucide="check-circle"></i>';
-            } else {
-                btnNext.innerHTML = 'Siguiente <i data-lucide="chevron-right"></i>';
-            }
+        window.onload = () => {
             lucide.createIcons();
+            loadSettingsToUI();
+            checkOTAUpdate();
+            syncMinigameWithGitHub(); // <--- Carga real al inicio
+        };
 
-            const optionsDiv = document.getElementById('test-options');
-            optionsDiv.innerHTML = '';
-            
-            ['a', 'b', 'c', 'd'].forEach(letter => {
-                let btn = document.createElement('button');
-                btn.className = 'option-btn';
-                btn.innerText = `${letter.toUpperCase()}) ${q[letter]}`;
+        // --- CARGA REAL DEL MINIJUEGO ---
+        async function syncMinigameWithGitHub() {
+            try {
+                const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}`);
+                const folders = await res.json();
+                const randomFolder = folders.filter(f => f.type === 'dir')[Math.floor(Math.random() * folders.length)];
                 
-                // Si estamos navegando atrás y ya hay respuesta guardada
-                if (q.userAnswer === letter.toUpperCase() && isEndMode) {
-                    btn.classList.add('selected');
-                }
-                
-                // Si estamos en modo instantáneo y la pregunta ya se respondió (al ir atrás no se puede, pero por seguridad)
-                if (!isEndMode && q.userAnswer) {
-                     btn.style.pointerEvents = 'none';
-                     if (q.userAnswer === letter.toUpperCase()) {
-                         btn.classList.add(q.userAnswer === q.correcta ? 'correct' : 'wrong');
-                     }
-                     if (letter.toUpperCase() === q.correcta && q.userAnswer !== q.correcta) {
-                         btn.classList.add('correct');
-                     }
-                } else {
-                    btn.onclick = () => selectTestOption(btn, letter.toUpperCase(), q.correcta);
-                }
-                
-                optionsDiv.appendChild(btn);
-            });
-            
-            // Habilitar "Siguiente" si ya hay respuesta (para navegación), sino deshabilitar
-            btnNext.disabled = (isEndMode && !q.userAnswer) || (!isEndMode && !q.userAnswer);
-            if (!isEndMode) btnNext.disabled = !q.userAnswer; // En instantáneo bloquea hasta responder
-        }
+                const resFiles = await fetch(randomFolder.url);
+                const files = await resFiles.json();
+                const randomCSV = files.filter(f => f.name.endsWith('.csv'))[Math.floor(Math.random() * files.length)];
 
-        function selectTestOption(btn, selected, correct) {
-            const buttons = document.querySelectorAll('#test-options .option-btn');
-            
-            if (appSettings.correctionMode === 'end') {
-                buttons.forEach(b => b.classList.remove('selected'));
-                btn.classList.add('selected');
-                currentTest.questions[currentTest.currentIndex].userAnswer = selected;
-                document.getElementById('btn-next').disabled = false;
-            } else {
-                buttons.forEach(b => b.style.pointerEvents = 'none');
-                currentTest.questions[currentTest.currentIndex].userAnswer = selected;
-                if(selected === correct) {
-                    btn.classList.add('correct');
-                    currentTest.correctAnswers++;
-                } else {
-                    btn.classList.add('wrong');
-                    buttons.forEach(b => { if(b.innerText.startsWith(correct)) b.classList.add('correct'); });
-                }
-                document.getElementById('btn-next').disabled = false;
+                const resContent = await fetch(randomCSV.download_url);
+                const text = await resContent.text();
+                const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+                
+                randomPool = parsed.data;
+                loadMinigame();
+            } catch (e) {
+                document.getElementById('random-question-text').innerText = "Cargando pool local (sin conexión)...";
+                randomPool = [{id:0, pregunta: "¿De cuántos artículos consta la CE?", a:"166", b:"167", c:"168", d:"169", correcta:"D"}];
+                loadMinigame();
             }
         }
-
-        function prevQuestion() {
-            if(currentTest.currentIndex > 0) {
-                currentTest.currentIndex--;
-                renderTestQuestion();
-            }
-        }
-
-        function nextQuestion() {
-            if(currentTest.currentIndex >= currentTest.questions.length - 1) {
-                endTest();
-            } else {
-                currentTest.currentIndex++;
-                renderTestQuestion();
-            }
-        }
-
-        function endTest() {
-            clearInterval(timerInterval);
-            
-            // Calcular nota si es modo final
-            if (appSettings.correctionMode === 'end') {
-                currentTest.correctAnswers = 0;
-                currentTest.questions.forEach(q => {
-                    if (q.userAnswer === q.correcta) currentTest.correctAnswers++;
-                });
-            }
-
-            let mins = Math.floor(totalTimeSpent / 60);
-            let secs = totalTimeSpent % 60;
-            
-            activityLog.push({
-                date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(),
-                score: currentTest.correctAnswers,
-                total: currentTest.questions.length,
-                time: `${mins}m ${secs}s`
-            });
-            localStorage.setItem('testaruda_log', JSON.stringify(activityLog));
-
-            document.getElementById('result-score').innerText = `${currentTest.correctAnswers} / ${currentTest.questions.length}`;
-            document.getElementById('result-stats').innerText = `Has tardado ${mins} minutos y ${secs} segundos.`;
-            
-            // Mostrar u ocultar botón de revisión según el modo
-            document.getElementById('btn-review').style.display = (appSettings.correctionMode === 'end') ? 'inline-flex' : 'none';
-
-            showScreen('screen-results');
-        }
-
-        function abandonTest() {
-            if(confirm("¿Seguro que quieres abandonar? No se guardará el progreso.")) {
-                clearInterval(timerInterval);
-                showScreen('screen-home');
-            }
-        }
-
-        // -------- TEMPORIZADOR -------- //
-        function startTimer() {
-            clearInterval(timerInterval);
-            updateTimerDisplay();
-            timerInterval = setInterval(() => {
-                timeRemaining--; totalTimeSpent++; updateTimerDisplay();
-                if(timeRemaining <= 0) { alert("¡Tiempo agotado!"); endTest(); }
-            }, 1000);
-        }
-        function updateTimerDisplay() {
-            let m = Math.floor(Math.max(timeRemaining, 0) / 60).toString().padStart(2, '0');
-            let s = (Math.max(timeRemaining, 0) % 60).toString().padStart(2, '0');
-            document.getElementById('test-timer').innerHTML = `<i data-lucide="clock"></i> ${m}:${s}`;
-            lucide.createIcons();
-        }
-
-        // -------- REVISIÓN Y EXPORTAR A PDF -------- //
-        function renderReview() {
-            const container = document.getElementById('review-container');
-            container.innerHTML = '';
-            
-            currentTest.questions.forEach((q, index) => {
-                let div = document.createElement('div');
-                div.className = 'review-q';
-                
-                let html = `<strong>${index + 1}. ${q.pregunta}</strong><div style="margin-top:8px;">`;
-                
-                ['a', 'b', 'c', 'd'].forEach(letter => {
-                    let optClass = 'r-option';
-                    let L = letter.toUpperCase();
-                    
-                    if (L === q.correcta) optClass += ' r-correct';
-                    else if (L === q.userAnswer && q.userAnswer !== q.correcta) optClass += ' r-wrong';
-                    
-                    let mark = '';
-                    if(L === q.userAnswer) mark = ' <strong>(Tu respuesta)</strong>';
-                    
-                    html += `<div class="${optClass}">${L}) ${q[letter]} ${mark}</div>`;
-                });
-                
-                html += `</div>`;
-                div.innerHTML = html;
-                container.appendChild(div);
-            });
-        }
-
-        function exportToPDF() {
-            const element = document.getElementById('pdf-content');
-            const opt = {
-                margin:       10,
-                filename:     'Testaruda-Revision.pdf',
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2 },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-            html2pdf().set(opt).from(element).save();
-        }
-
-        // -------- HISTORIAL Y BACKUP -------- //
-        function renderHistory() {
-            const container = document.getElementById('history-container');
-            if(activityLog.length === 0) { container.innerHTML = '<p style="color: var(--text-muted); text-align: center;">Aún no hay tests registrados.</p>'; return; }
-            container.innerHTML = activityLog.slice().reverse().map(log => `
-                <div class="history-item">
-                    <div>
-                        <div style="font-weight: 600; margin-bottom: 4px;">Test Finalizado</div>
-                        <div style="font-size: 12px; color: var(--text-muted);"><i data-lucide="calendar" style="width:12px;"></i> ${log.date} | <i data-lucide="clock" style="width:12px;"></i> ${log.time}</div>
-                    </div>
-                    <div class="score-badge">${log.score}/${log.total}</div>
-                </div>
-            `).join('');
-            lucide.createIcons();
-        }
-        function exportData() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(activityLog));
-            const dlAnchorElem = document.createElement('a');
-            dlAnchorElem.setAttribute("href", dataStr);
-            dlAnchorElem.setAttribute("download", "testaruda_backup.json");
-            dlAnchorElem.click();
-        }
-        function importData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const importedLog = JSON.parse(e.target.result);
-                    if(Array.isArray(importedLog)) { activityLog = importedLog; localStorage.setItem('testaruda_log', JSON.stringify(activityLog)); alert("¡Historial restaurado con éxito!"); } else throw new Error("Inválido");
-                } catch(err) { alert("Error al leer el archivo de copia de seguridad."); }
-            };
-            reader.readAsText(file);
-        }
-
-        // -------- MINIJUEGO INFINITO -------- //
-        const poolMinijuego = [
-            { pregunta: "¿De cuántos artículos consta la Constitución Española?", a: "166", b: "167", c: "168", d: "169", correcta: "D" },
-            { pregunta: "¿Qué título de la Constitución está dedicado al Tribunal Constitucional?", a: "Título VI", b: "Título VII", c: "Título VIII", d: "Título IX", correcta: "D" },
-            { pregunta: "La Constitución Española de 1978 entró en vigor:", a: "Al día siguiente de su publicación en el BOE.", b: "El 28 de diciembre de 1978.", c: "El 29 de diciembre de 1978.", d: "Al día siguiente de ser aprobada.", correcta: "C" },
-            { pregunta: "¿Cuántas Disposiciones adicionales tiene la Constitución?", a: "Cuatro", b: "Seis", c: "Nueve", d: "Diez", correcta: "A" }
-        ];
 
         function loadMinigame() {
-            let q = poolMinijuego[Math.floor(Math.random() * poolMinijuego.length)];
-            
+            if (randomPool.length === 0) return;
+            const q = randomPool[Math.floor(Math.random() * randomPool.length)];
             document.getElementById('random-question-text').innerText = q.pregunta;
-            const optionsDiv = document.getElementById('random-options');
-            optionsDiv.innerHTML = '';
-            
             document.getElementById('random-feedback').style.display = 'none';
             document.getElementById('btn-next-random').style.display = 'none';
-
-            ['a', 'b', 'c', 'd'].forEach(letter => {
-                let btn = document.createElement('button');
+            
+            const opts = document.getElementById('random-options');
+            opts.innerHTML = '';
+            ['a','b','c','d'].forEach(l => {
+                const btn = document.createElement('button');
                 btn.className = 'option-btn';
-                btn.innerText = `${letter.toUpperCase()}) ${q[letter]}`;
+                btn.innerText = `${l.toUpperCase()}) ${q[l]}`;
                 btn.onclick = () => {
-                    if(letter.toUpperCase() === q.correcta) {
+                    document.querySelectorAll('#random-options .option-btn').forEach(b => b.style.pointerEvents = 'none');
+                    if (l.toUpperCase() === q.correcta) {
                         btn.classList.add('correct');
-                        document.getElementById('random-feedback').innerText = "¡Correcto! ✅"; document.getElementById('random-feedback').style.color = "var(--success)";
+                        document.getElementById('random-feedback').innerText = "¡Correcto! ✅";
                     } else {
                         btn.classList.add('wrong');
-                        document.getElementById('random-feedback').innerText = `Fallaste ❌. Era la ${q.correcta}.`; document.getElementById('random-feedback').style.color = "var(--danger)";
+                        document.getElementById('random-feedback').innerText = `Error. Era la ${q.correcta} ❌`;
                     }
                     document.getElementById('random-feedback').style.display = 'block';
                     document.getElementById('btn-next-random').style.display = 'inline-flex';
-                    optionsDiv.querySelectorAll('.option-btn').forEach(b => b.style.pointerEvents = 'none');
                 };
-                optionsDiv.appendChild(btn);
+                opts.appendChild(btn);
             });
+            lucide.createIcons();
         }
 
-        window.onload = () => { loadMinigame(); };
+        // --- GESTIÓN DE TEMAS (SETUP) ---
+        async function openSetup() {
+            showScreen('screen-setup');
+            const container = document.getElementById('themes-container');
+            const loader = document.getElementById('themes-loader');
+            if (container.children.length > 0) return;
+
+            try {
+                const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}`);
+                const folders = await res.json();
+                container.innerHTML = ''; loader.style.display = 'none';
+
+                for (let item of folders) {
+                    if (item.type === 'dir') {
+                        const resFiles = await fetch(item.url);
+                        const files = await resFiles.json();
+                        const csvFiles = files.filter(f => f.name.endsWith('.csv'));
+                        if (csvFiles.length > 0) renderThemeGroup(item.name, csvFiles);
+                    }
+                }
+                lucide.createIcons();
+            } catch (err) { loader.innerText = "Error en GitHub."; }
+        }
+
+        function renderThemeGroup(name, files) {
+            const container = document.getElementById('themes-container');
+            const id = 't_' + Math.random().toString(36).substr(2, 5);
+            const div = document.createElement('div');
+            div.className = 'theme-group';
+            div.innerHTML = `<div class="theme-header" onclick="document.getElementById('${id}').style.display = (document.getElementById('${id}').style.display === 'flex' ? 'none' : 'flex')">
+                <span><i data-lucide="folder"></i> ${name.replace(/_/g,' ')}</span><i data-lucide="chevron-down"></i></div>
+                <div class="csv-list" id="${id}">${files.map(f => `<label class="csv-item"><input type="checkbox" class="csv-check" data-url="${f.download_url}">${f.name.replace('.csv','').replace(/_/g,' ')}</label>`).join('')}</div>`;
+            container.appendChild(div);
+        }
+
+        // --- TEST CORE ---
+        async function startTest() {
+            const selected = Array.from(document.querySelectorAll('.csv-check:checked'));
+            if (selected.length === 0) return alert("Elige un tema.");
+            currentTest.questions = [];
+            for (let c of selected) {
+                const res = await fetch(c.dataset.url);
+                const t = await res.text();
+                const p = Papa.parse(t, { header: true, skipEmptyLines: true });
+                currentTest.questions.push(...p.data);
+            }
+            currentTest.questions.sort(() => Math.random() - 0.5);
+            const lim = parseInt(document.getElementById('num-questions').value);
+            if (lim > 0) currentTest.questions = currentTest.questions.slice(0, lim);
+            currentTest.questions.forEach(q => q.userAnswer = null);
+            currentTest.currentIndex = 0; currentTest.correctAnswers = 0;
+            startTimer(currentTest.questions.length * appSettings.timePerQuestion);
+            renderQuestion(); showScreen('screen-test');
+        }
+
+        function renderQuestion() {
+            const q = currentTest.questions[currentTest.currentIndex];
+            const isEnd = appSettings.correctionMode === 'end';
+            document.getElementById('test-progress').innerText = `Pregunta ${currentTest.currentIndex + 1} de ${currentTest.questions.length}`;
+            document.getElementById('question-text').innerText = q.pregunta;
+            document.getElementById('btn-prev').style.display = (isEnd && currentTest.currentIndex > 0) ? 'inline-flex' : 'none';
+            document.getElementById('btn-next').innerText = (currentTest.currentIndex === currentTest.questions.length - 1) ? 'Finalizar' : 'Siguiente';
+            const optsDiv = document.getElementById('test-options'); optsDiv.innerHTML = '';
+            ['a','b','c','d'].forEach(l => {
+                const btn = document.createElement('button'); btn.className = 'option-btn'; btn.innerText = `${l.toUpperCase()}) ${q[l]}`;
+                if (q.userAnswer === l.toUpperCase()) btn.classList.add(isEnd ? 'selected' : (q.userAnswer === q.correcta ? 'correct' : 'wrong'));
+                if (!isEnd && q.userAnswer && l.toUpperCase() === q.correcta) btn.classList.add('correct');
+                if (!q.userAnswer) btn.onclick = () => handleSelection(btn, l.toUpperCase(), q.correcta);
+                optsDiv.appendChild(btn);
+            });
+            document.getElementById('btn-next').disabled = !q.userAnswer;
+            lucide.createIcons();
+        }
+
+        function handleSelection(btn, letter, correct) {
+            const q = currentTest.questions[currentTest.currentIndex]; q.userAnswer = letter;
+            if (appSettings.correctionMode === 'instant') {
+                if (letter === correct) { btn.classList.add('correct'); currentTest.correctAnswers++; }
+                else { btn.classList.add('wrong'); document.querySelectorAll('.option-btn').forEach(b => { if(b.innerText.startsWith(correct)) b.classList.add('correct'); }); }
+                document.querySelectorAll('.option-btn').forEach(b => b.style.pointerEvents = 'none');
+            } else btn.classList.add('selected');
+            document.getElementById('btn-next').disabled = false;
+        }
+
+        function nextQuestion() { (currentTest.currentIndex < currentTest.questions.length - 1) ? (currentTest.currentIndex++, renderQuestion()) : finishTest(); }
+        function prevQuestion() { if (currentTest.currentIndex > 0) { currentTest.currentIndex--; renderQuestion(); } }
+
+        function finishTest() {
+            clearInterval(currentTest.timer);
+            if (appSettings.correctionMode === 'end') currentTest.correctAnswers = currentTest.questions.filter(q => q.userAnswer === q.correcta).length;
+            const log = { date: new Date().toLocaleString(), score: currentTest.correctAnswers, total: currentTest.questions.length, time: document.getElementById('test-timer').innerText };
+            activityLog.push(log); localStorage.setItem('testaruda_log', JSON.stringify(activityLog));
+            document.getElementById('result-score').innerText = `${currentTest.correctAnswers} / ${currentTest.questions.length}`;
+            document.getElementById('btn-review').style.display = (appSettings.correctionMode === 'end') ? 'block' : 'none';
+            showScreen('screen-results');
+        }
+
+        // --- AUXILIARES ---
+        function startTimer(s) { let r = s; currentTest.timer = setInterval(() => { r--; updateTimerUI(r); if (r <= 0) { clearInterval(currentTest.timer); finishTest(); } }, 1000); }
+        function updateTimerUI(s) { const m = Math.floor(s/60).toString().padStart(2,'0'), sc = (s%60).toString().padStart(2,'0'); document.getElementById('test-timer').innerHTML = `<i data-lucide="clock"></i> ${m}:${sc}`; lucide.createIcons(); }
+        function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); if(id==='screen-history') renderHistory(); if(id==='screen-review') renderReview(); lucide.createIcons(); }
+        function loadSettingsToUI() { document.getElementById('set-correction').value = appSettings.correctionMode; document.getElementById('set-time').value = appSettings.timePerQuestion; }
+        function saveSettings() { appSettings.correctionMode = document.getElementById('set-correction').value; appSettings.timePerQuestion = parseInt(document.getElementById('set-time').value); localStorage.setItem('testaruda_settings', JSON.stringify(appSettings)); showScreen('screen-home'); }
+        function forceOTAUpdate() { localStorage.removeItem('testaruda_sha'); window.location.reload(true); }
+        async function checkOTAUpdate() { try { const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/commits?path=index.html&per_page=1`), data = await res.json(), latest = data[0].sha, curr = localStorage.getItem('testaruda_sha'); if (curr && curr !== latest) document.getElementById('ota-alert').style.display = 'block'; if (!curr) localStorage.setItem('testaruda_sha', latest); } catch(e){} }
+        function renderHistory() { const c = document.getElementById('history-container'); c.innerHTML = activityLog.slice().reverse().map(e => `<div class="history-item"><div><b>${e.date}</b><br><small>${e.time}</small></div><div class="score-badge">${e.score}/${e.total}</div></div>`).join(''); }
+        function renderReview() { const c = document.getElementById('review-container'); c.innerHTML = ''; currentTest.questions.forEach((q,i) => { const d = document.createElement('div'); d.className='review-q'; d.innerHTML=`<p><b>${i+1}. ${q.pregunta}</b></p>`+['a','b','c','d'].map(l => `<div class="r-option ${q.correcta===l.toUpperCase()?'r-correct':(q.userAnswer===l.toUpperCase()?'r-wrong':'')}">${l.toUpperCase()}) ${q[l]}</div>`).join(''); c.appendChild(d); }); }
+        function exportToPDF() { html2pdf().set({margin:10, filename:'Testaruda.pdf'}).from(document.getElementById('pdf-content')).save(); }
+        function abandonTest() { if(confirm("¿Salir?")) { clearInterval(currentTest.timer); showScreen('screen-home'); } }
     </script>
 </body>
 </html>
