@@ -82,6 +82,10 @@
         .bookmark-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); transition: 0.2s; padding: 5px; }
         .bookmark-btn.active { color: var(--warning); }
         .bookmark-btn:hover { transform: scale(1.1); }
+        
+        /* Progress Bar para Stats */
+        .stat-bar { height: 6px; background: var(--border); border-radius: 3px; margin-top: 5px; overflow: hidden; }
+        .stat-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease-out; }
     </style>
 </head>
 <body>
@@ -193,9 +197,16 @@
 
         <div id="screen-history" class="screen">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2>Progreso (Toca para revisar)</h2>
+                <h2>Progreso y Estadísticas</h2>
                 <button class="btn btn-sm btn-outline" onclick="showScreen('screen-home')">Volver</button>
             </div>
+            
+            <div class="card" style="padding: 20px;">
+                <h3 style="font-size: 16px; margin-bottom: 15px; color: var(--primary);"><i data-lucide="pie-chart"></i> Rendimiento por Temas</h3>
+                <div id="stats-container"></div>
+            </div>
+
+            <h3 style="font-size: 16px; margin: 20px 0 10px 0;"><i data-lucide="list"></i> Tests Realizados (Toca para revisar)</h3>
             <div class="card" id="history-container" style="padding:0;"></div>
         </div>
 
@@ -226,7 +237,7 @@
                 <hr style="margin: 30px 0; border: none; border-top: 1px solid var(--border);">
                 
                 <h3><i data-lucide="database"></i> Datos y Backup</h3>
-                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Exporta tu progreso (historial y marcadores) para no perderlo o impórtalo en otro dispositivo.</p>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Exporta tu progreso (historial, estadísticas y marcadores) para no perderlo o impórtalo en otro dispositivo.</p>
                 <div style="display: flex; gap: 10px;">
                     <button class="btn btn-outline btn-sm" style="flex:1" onclick="exportBackup()"><i data-lucide="download"></i> Exportar</button>
                     <button class="btn btn-outline btn-sm" style="flex:1" onclick="document.getElementById('import-file').click()"><i data-lucide="upload"></i> Importar</button>
@@ -250,20 +261,21 @@
         let appSettings = JSON.parse(localStorage.getItem('testaruda_settings')) || { timePerQuestion: 60, correctionMode: 'instant' };
         let activityLog = JSON.parse(localStorage.getItem('testaruda_log')) || [];
         let bookmarkedQuestions = JSON.parse(localStorage.getItem('testaruda_bookmarks')) || [];
-        let currentTest = { questions: [], currentIndex: 0, correctAnswers: 0, timer: null };
-        let minigameAnswered = false; 
+        let globalStats = JSON.parse(localStorage.getItem('testaruda_stats')) || {}; // NUEVO: Rastreo de Estadísticas Globales
         
-        // Estructura de GitHub en Caché para no saturar la API
+        let currentTest = { questions: [], currentIndex: 0, correctAnswers: 0, timer: null };
+        let randomPool = []; 
+        let minigameAnswered = false; 
         let repoStructure = []; 
 
         window.onload = () => {
             lucide.createIcons();
             loadSettingsToUI();
             checkOTAUpdate();
-            loadMinigame(); // Inicia el minijuego automáticamente
+            loadMinigame(); 
         };
 
-        // --- ALGORITMO FISHER-YATES PARA MEZCLADO PERFECTO ---
+        // --- ALGORITMOS MATEMÁTICOS Y ESTADÍSTICAS ---
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -271,7 +283,15 @@
             }
         }
 
-        // --- DESCARGA DE ESTRUCTURA GITHUB ---
+        function updateGlobalStats(category, isCorrect) {
+            const cat = category || 'General';
+            if(!globalStats[cat]) globalStats[cat] = { correct: 0, total: 0 };
+            globalStats[cat].total++;
+            if(isCorrect) globalStats[cat].correct++;
+            localStorage.setItem('testaruda_stats', JSON.stringify(globalStats));
+        }
+
+        // --- GITHUB FETCH ---
         async function fetchRepoStructure() {
             if(repoStructure.length > 0) return true; 
             try {
@@ -298,7 +318,7 @@
             }
         }
 
-        // --- CARGA DEL MINIJUEGO GLOBAL (OPTIMIZADO) ---
+        // --- MINIJUEGO ---
         async function loadMinigame() {
             minigameAnswered = false; 
             document.getElementById('random-question-text').innerText = "Buscando pregunta por todo el temario...";
@@ -314,20 +334,21 @@
             }
 
             try {
-                // Selecciona Tema al azar y Archivo al azar en cada intento
                 const rFolder = repoStructure[Math.floor(Math.random() * repoStructure.length)];
                 const rFile = rFolder.files[Math.floor(Math.random() * rFolder.files.length)];
 
-                // Descarga el archivo seleccionado
                 const resContent = await fetch(rFile.download_url);
                 const text = await resContent.text();
                 const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
                 
-                // Extrae una pregunta al azar
                 const q = parsed.data[Math.floor(Math.random() * parsed.data.length)];
                 const cleanFolderName = rFolder.folderName.replace(/_/g,' ');
+                
+                // Guardamos la categoría en el objeto de la pregunta para las estadísticas
+                q.category = cleanFolderName; 
 
-                document.getElementById('random-question-text').innerHTML = `<span style="font-size:12px; color:var(--primary); display:block; margin-bottom:5px; font-weight:600;">[${cleanFolderName}]</span> ${q.pregunta}`;
+                // Pintamos la etiqueta encima del minijuego
+                document.getElementById('random-question-text').innerHTML = `<span style="font-size:12px; color:var(--primary); display:block; margin-bottom:5px; font-weight:600;">[${q.category}]</span> ${q.pregunta}`;
                 
                 const opts = document.getElementById('random-options');
                 opts.innerHTML = '';
@@ -343,10 +364,13 @@
                         if(minigameAnswered) return; 
                         minigameAnswered = true;
                         
-                        // Bloqueamos SOLO botones del minijuego
                         document.querySelectorAll('#random-options .option-btn').forEach(b => b.disabled = true);
                         
-                        if (l.toUpperCase() === q.correcta) {
+                        const isCorrect = (l.toUpperCase() === q.correcta);
+                        // Sumamos al panel global
+                        updateGlobalStats(q.category, isCorrect);
+                        
+                        if (isCorrect) {
                             btn.classList.add('correct');
                             document.getElementById('random-feedback').innerText = "¡Correcto! ✅";
                         } else {
@@ -367,7 +391,7 @@
             }
         }
 
-        // --- SELECCIÓN DE TEMAS ---
+        // --- SETUP DE TEST ---
         async function openSetup() {
             showScreen('screen-setup');
             const container = document.getElementById('themes-container');
@@ -420,18 +444,9 @@
             container.appendChild(div);
         }
 
-        function toggleList(id) {
-            const el = document.getElementById(id);
-            el.style.display = (el.style.display === 'flex' ? 'none' : 'flex');
-        }
-
-        function selectAll(checked) {
-            document.querySelectorAll('.csv-check').forEach(cb => cb.checked = checked);
-        }
-
-        function selectCategory(id, checked) {
-            document.getElementById(id).querySelectorAll('.csv-check').forEach(cb => cb.checked = checked);
-        }
+        function toggleList(id) { const el = document.getElementById(id); el.style.display = (el.style.display === 'flex' ? 'none' : 'flex'); }
+        function selectAll(checked) { document.querySelectorAll('.csv-check').forEach(cb => cb.checked = checked); }
+        function selectCategory(id, checked) { document.getElementById(id).querySelectorAll('.csv-check').forEach(cb => cb.checked = checked); }
 
         // --- TEST CORE ---
         async function startTest() {
@@ -448,9 +463,7 @@
                 currentTest.questions.push(...p.data);
             }
             
-            // Mezclado absoluto de preguntas
             shuffleArray(currentTest.questions);
-            
             const lim = parseInt(document.getElementById('num-questions').value);
             if (lim > 0) currentTest.questions = currentTest.questions.slice(0, lim);
             currentTest.questions.forEach(q => q.userAnswer = null);
@@ -465,11 +478,13 @@
             const isEnd = appSettings.correctionMode === 'end';
             
             document.getElementById('test-progress').innerText = `Pregunta ${currentTest.currentIndex + 1} de ${currentTest.questions.length}`;
-            document.getElementById('question-text').innerText = q.pregunta;
+            
+            // Pintamos la etiqueta de categoría encima del texto
+            document.getElementById('question-text').innerHTML = `<span style="font-size:12px; color:var(--primary); display:block; margin-bottom:5px; font-weight:600;">[${q.category || 'General'}]</span> ${q.pregunta}`;
+            
             document.getElementById('btn-prev').style.display = (isEnd && currentTest.currentIndex > 0) ? 'inline-flex' : 'none';
             document.getElementById('btn-next').innerText = (currentTest.currentIndex === currentTest.questions.length - 1) ? 'Finalizar' : 'Siguiente';
             
-            // Estado del Marcador (Estrella)
             const starBtn = document.getElementById('btn-bookmark');
             const isBookmarked = bookmarkedQuestions.some(b => b.pregunta === q.pregunta);
             if (isBookmarked) {
@@ -538,7 +553,16 @@
 
         function finishTest() {
             clearInterval(currentTest.timer);
-            if (appSettings.correctionMode === 'end') currentTest.correctAnswers = currentTest.questions.filter(q => q.userAnswer === q.correcta).length;
+            
+            currentTest.correctAnswers = 0;
+            currentTest.questions.forEach(q => {
+                const isCorrect = (q.userAnswer === q.correcta);
+                if (isCorrect) currentTest.correctAnswers++;
+                // Sumar cada pregunta a las estadísticas globales
+                if (q.userAnswer) { // Solo cuenta si la ha contestado
+                    updateGlobalStats(q.category, isCorrect);
+                }
+            });
             
             const questionsCopy = JSON.parse(JSON.stringify(currentTest.questions));
             const log = { 
@@ -560,16 +584,13 @@
         function toggleBookmark() {
             const q = currentTest.questions[currentTest.currentIndex];
             const index = bookmarkedQuestions.findIndex(b => b.pregunta === q.pregunta);
-            
-            if (index > -1) {
-                bookmarkedQuestions.splice(index, 1);
-            } else {
+            if (index > -1) bookmarkedQuestions.splice(index, 1);
+            else {
                 const qCopy = {...q};
                 delete qCopy.userAnswer;
                 if(!qCopy.category) qCopy.category = 'General';
                 bookmarkedQuestions.push(qCopy); 
             }
-            
             localStorage.setItem('testaruda_bookmarks', JSON.stringify(bookmarkedQuestions));
             renderQuestion(); 
         }
@@ -599,7 +620,6 @@
                 const id = 'bm_' + Math.random().toString(36).substr(2, 5);
                 const div = document.createElement('div');
                 div.className = 'theme-group';
-                
                 let html = `
                     <div class="theme-header" onclick="toggleList('${id}')" style="cursor:pointer;">
                         <span style="display:flex; align-items:center; gap:8px;"><i data-lucide="folder"></i> ${cat} (${grouped[cat].length})</span>
@@ -622,7 +642,6 @@
                             </div>
                         </div>`;
                 });
-                
                 html += `</div>`;
                 div.innerHTML = html;
                 container.appendChild(div);
@@ -630,15 +649,40 @@
             lucide.createIcons();
         }
 
-        // --- HISTORIAL ---
+        // --- HISTORIAL Y ESTADÍSTICAS ---
         function renderHistory() {
+            // 1. Renderizar Estadísticas Globales
+            const statsCont = document.getElementById('stats-container');
+            if (Object.keys(globalStats).length === 0) {
+                statsCont.innerHTML = '<div style="color:var(--text-muted); font-size:14px; text-align:center;">Realiza tu primer test o minijuego para ver tus resultados aquí.</div>';
+            } else {
+                statsCont.innerHTML = Object.keys(globalStats).map(cat => {
+                    const st = globalStats[cat];
+                    const pct = Math.round((st.correct / st.total) * 100);
+                    let color = 'var(--success)';
+                    if (pct < 50) color = 'var(--danger)';
+                    else if (pct < 80) color = 'var(--warning)';
+
+                    return `
+                        <div style="margin-bottom: 12px;">
+                            <div style="display:flex; justify-content:space-between; font-size:14px; font-weight:600; margin-bottom:4px;">
+                                <span>${cat}</span>
+                                <span style="color:${color}">${pct}% <span style="color:var(--text-muted); font-size:12px; font-weight:400;">(${st.correct}/${st.total})</span></span>
+                            </div>
+                            <div class="stat-bar">
+                                <div class="stat-fill" style="width:${pct}%; background:${color};"></div>
+                            </div>
+                        </div>`;
+                }).join('');
+            }
+
+            // 2. Renderizar Historial de Tests
             const c = document.getElementById('history-container');
             if (activityLog.length === 0) { c.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted);">Sin registros aún.</div>'; return; }
             
             c.innerHTML = activityLog.slice().reverse().map((e, index) => {
                 const realIndex = activityLog.length - 1 - index;
                 const hasData = e.questions && e.questions.length > 0;
-                
                 return `
                 <div class="history-item" ${hasData ? `onclick="viewPastTest(${realIndex})"` : ''} style="${!hasData ? 'opacity:0.6; cursor:not-allowed;' : ''}">
                     <div>
@@ -660,16 +704,15 @@
         }
 
         // --- REVISIÓN ---
-        function showReviewFromCurrent() {
-            renderReview(currentTest.questions);
-            showScreen('screen-review');
-        }
+        function showReviewFromCurrent() { renderReview(currentTest.questions); showScreen('screen-review'); }
 
         function renderReview(qs) {
             const c = document.getElementById('review-container'); c.innerHTML = '';
             qs.forEach((q, i) => {
                 const d = document.createElement('div'); d.className = 'review-q';
-                d.innerHTML = `<p style="margin-bottom:8px;"><b>${i+1}. ${q.pregunta}</b></p>` + 
+                d.innerHTML = `
+                    <span style="font-size:12px; color:var(--primary); font-weight:600;">[${q.category || 'General'}]</span>
+                    <p style="margin-bottom:8px;"><b>${i+1}. ${q.pregunta}</b></p>` + 
                 ['a','b','c','d'].map(l => {
                     if(!q[l]) return '';
                     const isCorrect = (q.correcta === l.toUpperCase());
@@ -677,7 +720,6 @@
                     let cssClass = 'r-option';
                     if(isCorrect) cssClass += ' r-correct';
                     else if(isUserAns) cssClass += ' r-wrong';
-                    
                     return `<div class="${cssClass}">${l.toUpperCase()}) ${q[l]} ${isUserAns ? '<b>(Tu respuesta)</b>' : ''}</div>`;
                 }).join('');
                 c.appendChild(d);
@@ -692,13 +734,9 @@
             }
         }
 
-        // --- EXPORTAR E IMPORTAR (BACKUP) ---
+        // --- EXPORTAR E IMPORTAR ---
         function exportBackup() {
-            const data = { 
-                log: activityLog, 
-                settings: appSettings,
-                bookmarks: bookmarkedQuestions
-            };
+            const data = { log: activityLog, settings: appSettings, bookmarks: bookmarkedQuestions, stats: globalStats };
             const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -715,16 +753,16 @@
                     activityLog = data.log || [];
                     appSettings = data.settings || appSettings;
                     bookmarkedQuestions = data.bookmarks || [];
+                    globalStats = data.stats || {};
                     
                     localStorage.setItem('testaruda_log', JSON.stringify(activityLog));
                     localStorage.setItem('testaruda_settings', JSON.stringify(appSettings));
                     localStorage.setItem('testaruda_bookmarks', JSON.stringify(bookmarkedQuestions));
+                    localStorage.setItem('testaruda_stats', JSON.stringify(globalStats));
                     
                     alert("Backup importado con éxito.");
                     location.reload();
-                } catch(err) {
-                    alert("Error al leer el archivo de copia de seguridad.");
-                }
+                } catch(err) { alert("Error al leer el archivo."); }
             };
             reader.readAsText(file);
         }
@@ -733,7 +771,7 @@
         function showScreen(id) { 
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); 
             document.getElementById(id).classList.add('active'); 
-            
+            if(id === 'screen-home' && minigameAnswered) loadMinigame();
             if(id === 'screen-history') renderHistory(); 
             if(id === 'screen-bookmarks') renderBookmarks();
             lucide.createIcons(); 
