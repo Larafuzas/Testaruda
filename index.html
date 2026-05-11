@@ -263,6 +263,7 @@
         let activityLog = JSON.parse(localStorage.getItem('testaruda_log')) || [];
         let bookmarkedQuestions = JSON.parse(localStorage.getItem('testaruda_bookmarks')) || [];
         let globalStats = JSON.parse(localStorage.getItem('testaruda_stats')) || {}; 
+        let categoryTotals = JSON.parse(localStorage.getItem('testaruda_category_totals')) || {};
         
         let currentTest = { questions: [], currentIndex: 0, correctAnswers: 0, timer: null };
         let randomPool = []; 
@@ -292,7 +293,7 @@
             localStorage.setItem('testaruda_stats', JSON.stringify(globalStats));
         }
 
-        // --- GITHUB FETCH ---
+        // --- GITHUB FETCH Y CONTEO GLOBAL DE PREGUNTAS ---
         async function fetchRepoStructure() {
             if(repoStructure.length > 0) return true; 
             try {
@@ -312,10 +313,42 @@
                         }
                     }
                 }
+                
+                // Disparamos el cálculo de totales en segundo plano
+                calculateCategoryTotals();
+
                 return true;
             } catch(e) {
                 console.error("API error", e);
                 return false;
+            }
+        }
+
+        async function calculateCategoryTotals() {
+            let updated = false;
+            for (let folder of repoStructure) {
+                let cat = folder.folderName.replace(/_/g,' ');
+                // Si la categoría no está contada, bajamos sus archivos y sumamos
+                if (categoryTotals[cat] === undefined) {
+                    let total = 0;
+                    try {
+                        for (let file of folder.files) {
+                            const res = await fetch(file.download_url);
+                            const text = await res.text();
+                            const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+                            total += parsed.data.length;
+                        }
+                        categoryTotals[cat] = total;
+                        updated = true;
+                    } catch(e) { console.error("Error contando preguntas:", e); }
+                }
+            }
+            if (updated) {
+                localStorage.setItem('testaruda_category_totals', JSON.stringify(categoryTotals));
+                // Si justo el usuario está mirando las stats, se refresca
+                if(document.getElementById('screen-history').classList.contains('active')) {
+                    renderHistory();
+                }
             }
         }
 
@@ -349,7 +382,7 @@
                 const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
                 
                 let q = parsed.data[Math.floor(Math.random() * parsed.data.length)];
-                q = cleanQuestionData(q); // ¡Limpieza aplicada!
+                q = cleanQuestionData(q); 
                 
                 const cleanFolderName = rFolder.folderName.replace(/_/g,' ');
                 q.category = cleanFolderName; 
@@ -465,7 +498,7 @@
                 const p = Papa.parse(t, { header: true, skipEmptyLines: true });
                 const cat = c.dataset.category;
                 p.data.forEach(q => { 
-                    q = cleanQuestionData(q); // ¡Limpieza aplicada!
+                    q = cleanQuestionData(q); 
                     q.category = cat; 
                     currentTest.questions.push(q);
                 });
@@ -669,10 +702,13 @@
                     if (pct < 50) color = 'var(--danger)';
                     else if (pct < 80) color = 'var(--warning)';
 
+                    // Añadimos el recuento total de preguntas disponibles en el tema
+                    const totalDisponibles = categoryTotals[cat] ? ` <span style="font-weight:400; color:var(--text-muted); font-size:12px;">(${categoryTotals[cat]})</span>` : '';
+
                     return `
                         <div style="margin-bottom: 12px;">
                             <div style="display:flex; justify-content:space-between; font-size:14px; font-weight:600; margin-bottom:4px;">
-                                <span>${cat}</span>
+                                <span>${cat}${totalDisponibles}</span>
                                 <span style="color:${color}">${pct}% <span style="color:var(--text-muted); font-size:12px; font-weight:400;">(${st.correct}/${st.total})</span></span>
                             </div>
                             <div class="stat-bar">
@@ -790,7 +826,7 @@
         function updateTimerUI(s) { const m = Math.floor(s/60).toString().padStart(2,'0'), sc = (s%60).toString().padStart(2,'0'); document.getElementById('test-timer').innerHTML = `<i data-lucide="clock"></i> ${m}:${sc}`; lucide.createIcons(); }
         function loadSettingsToUI() { document.getElementById('set-correction').value = appSettings.correctionMode; document.getElementById('set-time').value = appSettings.timePerQuestion; }
         function saveSettings() { appSettings.correctionMode = document.getElementById('set-correction').value; appSettings.timePerQuestion = parseInt(document.getElementById('set-time').value); localStorage.setItem('testaruda_settings', JSON.stringify(appSettings)); showScreen('screen-home'); }
-        function forceOTAUpdate() { localStorage.removeItem('testaruda_sha'); window.location.reload(true); }
+        function forceOTAUpdate() { localStorage.removeItem('testaruda_sha'); localStorage.removeItem('testaruda_category_totals'); window.location.reload(true); }
         async function checkOTAUpdate() { try { const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/commits?path=index.html&per_page=1`); const data = await res.json(); const latest = data[0].sha; const curr = localStorage.getItem('testaruda_sha'); if (curr && curr !== latest) document.getElementById('ota-alert').style.display = 'block'; if (!curr) localStorage.setItem('testaruda_sha', latest); } catch(e){} }
         function exportToPDF() { html2pdf().set({margin:10, filename:'Testaruda_Revision.pdf'}).from(document.getElementById('pdf-content')).save(); }
         function abandonTest() { if(confirm("¿Salir?")) { clearInterval(currentTest.timer); showScreen('screen-home'); } }
