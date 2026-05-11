@@ -109,7 +109,7 @@
                     </button>
                 </div>
                 
-                <p id="random-question-text" style="margin-bottom: 15px; font-style: italic; color: var(--text-muted);">Cargando preguntas reales de GitHub...</p>
+                <p id="random-question-text" style="margin-bottom: 15px; font-style: italic; color: var(--text-muted);">Sincronizando con GitHub...</p>
                 <div id="random-options"></div>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
                     <p id="random-feedback" style="display:none; font-weight: 600; font-size: 14px; margin: 0;"></p>
@@ -251,80 +251,120 @@
         let activityLog = JSON.parse(localStorage.getItem('testaruda_log')) || [];
         let bookmarkedQuestions = JSON.parse(localStorage.getItem('testaruda_bookmarks')) || [];
         let currentTest = { questions: [], currentIndex: 0, correctAnswers: 0, timer: null };
-        let randomPool = []; 
         let minigameAnswered = false; 
+        
+        // Estructura de GitHub en Caché para no saturar la API
+        let repoStructure = []; 
 
         window.onload = () => {
             lucide.createIcons();
             loadSettingsToUI();
             checkOTAUpdate();
-            syncMinigameWithGitHub(); 
+            loadMinigame(); // Inicia el minijuego automáticamente
         };
 
-        // --- CARGA DEL MINIJUEGO ---
-        async function syncMinigameWithGitHub() {
-            try {
-                const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}`);
-                const folders = await res.json();
-                const randomFolder = folders.filter(f => f.type === 'dir')[Math.floor(Math.random() * folders.length)];
-                
-                const resFiles = await fetch(randomFolder.url);
-                const files = await resFiles.json();
-                const randomCSV = files.filter(f => f.name.endsWith('.csv'))[Math.floor(Math.random() * files.length)];
-
-                const resContent = await fetch(randomCSV.download_url);
-                const text = await resContent.text();
-                const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
-                
-                randomPool = parsed.data;
-                loadMinigame();
-            } catch (e) {
-                document.getElementById('random-question-text').innerText = "Cargando pool local...";
-                randomPool = [{id:0, pregunta: "¿De cuántos artículos consta la CE?", a:"166", b:"167", c:"168", d:"169", correcta:"D"}];
-                loadMinigame();
+        // --- ALGORITMO FISHER-YATES PARA MEZCLADO PERFECTO ---
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
             }
         }
 
-        function loadMinigame() {
-            if (randomPool.length === 0) return;
-            minigameAnswered = false; 
+        // --- DESCARGA DE ESTRUCTURA GITHUB ---
+        async function fetchRepoStructure() {
+            if(repoStructure.length > 0) return true; 
+            try {
+                const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}`);
+                const folders = await res.json();
+                
+                for(let folder of folders) {
+                    if(folder.type === 'dir') {
+                        const fRes = await fetch(folder.url);
+                        const files = await fRes.json();
+                        const csvFiles = files.filter(f => f.name.endsWith('.csv'));
+                        if(csvFiles.length > 0) {
+                            repoStructure.push({
+                                folderName: folder.name,
+                                files: csvFiles
+                            });
+                        }
+                    }
+                }
+                return true;
+            } catch(e) {
+                console.error("API error", e);
+                return false;
+            }
+        }
 
-            const q = randomPool[Math.floor(Math.random() * randomPool.length)];
-            document.getElementById('random-question-text').innerText = q.pregunta;
+        // --- CARGA DEL MINIJUEGO GLOBAL (OPTIMIZADO) ---
+        async function loadMinigame() {
+            minigameAnswered = false; 
+            document.getElementById('random-question-text').innerText = "Buscando pregunta por todo el temario...";
+            document.getElementById('random-options').innerHTML = '';
             document.getElementById('random-feedback').style.display = 'none';
             document.getElementById('btn-next-random').style.display = 'none';
             
-            const opts = document.getElementById('random-options');
-            opts.innerHTML = '';
+            const success = await fetchRepoStructure();
             
-            ['a','b','c','d'].forEach(l => {
-                const btn = document.createElement('button');
-                btn.className = 'option-btn';
-                btn.innerText = `${l.toUpperCase()}) ${q[l]}`;
-                btn.disabled = false; 
+            if(!success || repoStructure.length === 0) {
+                document.getElementById('random-question-text').innerText = "Error cargando. Comprueba tu conexión.";
+                return;
+            }
+
+            try {
+                // Selecciona Tema al azar y Archivo al azar en cada intento
+                const rFolder = repoStructure[Math.floor(Math.random() * repoStructure.length)];
+                const rFile = rFolder.files[Math.floor(Math.random() * rFolder.files.length)];
+
+                // Descarga el archivo seleccionado
+                const resContent = await fetch(rFile.download_url);
+                const text = await resContent.text();
+                const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
                 
-                btn.onclick = () => {
-                    if(minigameAnswered) return; 
-                    minigameAnswered = true;
+                // Extrae una pregunta al azar
+                const q = parsed.data[Math.floor(Math.random() * parsed.data.length)];
+                const cleanFolderName = rFolder.folderName.replace(/_/g,' ');
+
+                document.getElementById('random-question-text').innerHTML = `<span style="font-size:12px; color:var(--primary); display:block; margin-bottom:5px; font-weight:600;">[${cleanFolderName}]</span> ${q.pregunta}`;
+                
+                const opts = document.getElementById('random-options');
+                opts.innerHTML = '';
+                
+                ['a','b','c','d'].forEach(l => {
+                    if(!q[l]) return;
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.innerText = `${l.toUpperCase()}) ${q[l]}`;
+                    btn.disabled = false; 
                     
-                    document.querySelectorAll('#random-options .option-btn').forEach(b => b.disabled = true);
-                    
-                    if (l.toUpperCase() === q.correcta) {
-                        btn.classList.add('correct');
-                        document.getElementById('random-feedback').innerText = "¡Correcto! ✅";
-                    } else {
-                        btn.classList.add('wrong');
-                        document.getElementById('random-feedback').innerText = `Error. Era la ${q.correcta} ❌`;
-                        Array.from(opts.children).forEach(b => {
-                            if(b.innerText.startsWith(q.correcta)) b.classList.add('correct');
-                        });
-                    }
-                    document.getElementById('random-feedback').style.display = 'block';
-                    document.getElementById('btn-next-random').style.display = 'inline-flex';
-                };
-                opts.appendChild(btn);
-            });
-            lucide.createIcons();
+                    btn.onclick = () => {
+                        if(minigameAnswered) return; 
+                        minigameAnswered = true;
+                        
+                        // Bloqueamos SOLO botones del minijuego
+                        document.querySelectorAll('#random-options .option-btn').forEach(b => b.disabled = true);
+                        
+                        if (l.toUpperCase() === q.correcta) {
+                            btn.classList.add('correct');
+                            document.getElementById('random-feedback').innerText = "¡Correcto! ✅";
+                        } else {
+                            btn.classList.add('wrong');
+                            document.getElementById('random-feedback').innerText = `Error. Era la ${q.correcta} ❌`;
+                            Array.from(opts.children).forEach(b => {
+                                if(b.innerText.startsWith(q.correcta)) b.classList.add('correct');
+                            });
+                        }
+                        document.getElementById('random-feedback').style.display = 'block';
+                        document.getElementById('btn-next-random').style.display = 'inline-flex';
+                    };
+                    opts.appendChild(btn);
+                });
+                lucide.createIcons();
+            } catch(e) {
+                document.getElementById('random-question-text').innerText = "Error leyendo el archivo. Intenta de nuevo.";
+            }
         }
 
         // --- SELECCIÓN DE TEMAS ---
@@ -335,23 +375,22 @@
             const controls = document.getElementById('global-theme-controls');
             if (container.children.length > 0) return;
 
-            try {
-                const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}`);
-                const folders = await res.json();
-                container.innerHTML = ''; 
-                loader.style.display = 'none';
-                controls.style.display = 'flex';
+            loader.style.display = 'block';
+            const success = await fetchRepoStructure();
+            loader.style.display = 'none';
 
-                for (let item of folders) {
-                    if (item.type === 'dir') {
-                        const resFiles = await fetch(item.url);
-                        const files = await resFiles.json();
-                        const csvFiles = files.filter(f => f.name.endsWith('.csv'));
-                        if (csvFiles.length > 0) renderThemeGroup(item.name, csvFiles);
-                    }
-                }
-                lucide.createIcons();
-            } catch (err) { loader.innerText = "Error en GitHub."; }
+            if(!success) {
+                loader.style.display = 'block';
+                loader.innerText = "Error al conectar con GitHub.";
+                return;
+            }
+
+            controls.style.display = 'flex';
+            
+            for (let item of repoStructure) {
+                renderThemeGroup(item.folderName, item.files);
+            }
+            lucide.createIcons();
         }
 
         function renderThemeGroup(name, files) {
@@ -409,7 +448,9 @@
                 currentTest.questions.push(...p.data);
             }
             
-            currentTest.questions.sort(() => Math.random() - 0.5);
+            // Mezclado absoluto de preguntas
+            shuffleArray(currentTest.questions);
+            
             const lim = parseInt(document.getElementById('num-questions').value);
             if (lim > 0) currentTest.questions = currentTest.questions.slice(0, lim);
             currentTest.questions.forEach(q => q.userAnswer = null);
@@ -428,6 +469,7 @@
             document.getElementById('btn-prev').style.display = (isEnd && currentTest.currentIndex > 0) ? 'inline-flex' : 'none';
             document.getElementById('btn-next').innerText = (currentTest.currentIndex === currentTest.questions.length - 1) ? 'Finalizar' : 'Siguiente';
             
+            // Estado del Marcador (Estrella)
             const starBtn = document.getElementById('btn-bookmark');
             const isBookmarked = bookmarkedQuestions.some(b => b.pregunta === q.pregunta);
             if (isBookmarked) {
@@ -442,6 +484,7 @@
             const optsDiv = document.getElementById('test-options'); optsDiv.innerHTML = '';
             
             ['a','b','c','d'].forEach(l => {
+                if(!q[l]) return;
                 const btn = document.createElement('button'); 
                 btn.className = 'option-btn'; 
                 btn.innerText = `${l.toUpperCase()}) ${q[l]}`;
@@ -628,6 +671,7 @@
                 const d = document.createElement('div'); d.className = 'review-q';
                 d.innerHTML = `<p style="margin-bottom:8px;"><b>${i+1}. ${q.pregunta}</b></p>` + 
                 ['a','b','c','d'].map(l => {
+                    if(!q[l]) return '';
                     const isCorrect = (q.correcta === l.toUpperCase());
                     const isUserAns = (q.userAnswer === l.toUpperCase());
                     let cssClass = 'r-option';
@@ -690,10 +734,6 @@
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); 
             document.getElementById(id).classList.add('active'); 
             
-            if(id === 'screen-home' && minigameAnswered) {
-                loadMinigame();
-            }
-
             if(id === 'screen-history') renderHistory(); 
             if(id === 'screen-bookmarks') renderBookmarks();
             lucide.createIcons(); 
