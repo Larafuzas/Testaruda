@@ -38,6 +38,9 @@
         .card { background: var(--card-bg); border-radius: var(--radius); padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid var(--border); }
         h1, h2, h3 { font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
         
+        /* CORRECCIÓN: Evitar que la etiqueta del bloque se ponga a la izquierda del texto en la pregunta */
+        #question-text { align-items: flex-start; flex-direction: column; gap: 8px; }
+
         .btn { background-color: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; justify-content: center; transition: 0.2s; text-decoration: none; }
         .btn:hover { background-color: var(--primary-hover); }
         .btn-outline { background: transparent; color: var(--text-main); border: 1px solid var(--border); }
@@ -261,7 +264,7 @@
         let appSettings = JSON.parse(localStorage.getItem('testaruda_settings')) || { timePerQuestion: 60, correctionMode: 'instant' };
         let activityLog = JSON.parse(localStorage.getItem('testaruda_log')) || [];
         let bookmarkedQuestions = JSON.parse(localStorage.getItem('testaruda_bookmarks')) || [];
-        let globalStats = JSON.parse(localStorage.getItem('testaruda_stats')) || {}; // NUEVO: Rastreo de Estadísticas Globales
+        let globalStats = JSON.parse(localStorage.getItem('testaruda_stats')) || {}; 
         
         let currentTest = { questions: [], currentIndex: 0, correctAnswers: 0, timer: null };
         let randomPool = []; 
@@ -344,10 +347,8 @@
                 const q = parsed.data[Math.floor(Math.random() * parsed.data.length)];
                 const cleanFolderName = rFolder.folderName.replace(/_/g,' ');
                 
-                // Guardamos la categoría en el objeto de la pregunta para las estadísticas
                 q.category = cleanFolderName; 
 
-                // Pintamos la etiqueta encima del minijuego
                 document.getElementById('random-question-text').innerHTML = `<span style="font-size:12px; color:var(--primary); display:block; margin-bottom:5px; font-weight:600;">[${q.category}]</span> ${q.pregunta}`;
                 
                 const opts = document.getElementById('random-options');
@@ -367,7 +368,6 @@
                         document.querySelectorAll('#random-options .option-btn').forEach(b => b.disabled = true);
                         
                         const isCorrect = (l.toUpperCase() === q.correcta);
-                        // Sumamos al panel global
                         updateGlobalStats(q.category, isCorrect);
                         
                         if (isCorrect) {
@@ -479,8 +479,7 @@
             
             document.getElementById('test-progress').innerText = `Pregunta ${currentTest.currentIndex + 1} de ${currentTest.questions.length}`;
             
-            // Pintamos la etiqueta de categoría encima del texto
-            document.getElementById('question-text').innerHTML = `<span style="font-size:12px; color:var(--primary); display:block; margin-bottom:5px; font-weight:600;">[${q.category || 'General'}]</span> ${q.pregunta}`;
+            document.getElementById('question-text').innerHTML = `<span style="font-size:12px; color:var(--primary); font-weight:600;">[${q.category || 'General'}]</span> <span>${q.pregunta}</span>`;
             
             document.getElementById('btn-prev').style.display = (isEnd && currentTest.currentIndex > 0) ? 'inline-flex' : 'none';
             document.getElementById('btn-next').innerText = (currentTest.currentIndex === currentTest.questions.length - 1) ? 'Finalizar' : 'Siguiente';
@@ -558,8 +557,7 @@
             currentTest.questions.forEach(q => {
                 const isCorrect = (q.userAnswer === q.correcta);
                 if (isCorrect) currentTest.correctAnswers++;
-                // Sumar cada pregunta a las estadísticas globales
-                if (q.userAnswer) { // Solo cuenta si la ha contestado
+                if (q.userAnswer) { 
                     updateGlobalStats(q.category, isCorrect);
                 }
             });
@@ -651,7 +649,6 @@
 
         // --- HISTORIAL Y ESTADÍSTICAS ---
         function renderHistory() {
-            // 1. Renderizar Estadísticas Globales
             const statsCont = document.getElementById('stats-container');
             if (Object.keys(globalStats).length === 0) {
                 statsCont.innerHTML = '<div style="color:var(--text-muted); font-size:14px; text-align:center;">Realiza tu primer test o minijuego para ver tus resultados aquí.</div>';
@@ -676,7 +673,6 @@
                 }).join('');
             }
 
-            // 2. Renderizar Historial de Tests
             const c = document.getElementById('history-container');
             if (activityLog.length === 0) { c.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted);">Sin registros aún.</div>'; return; }
             
