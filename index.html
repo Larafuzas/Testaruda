@@ -38,7 +38,6 @@
         .card { background: var(--card-bg); border-radius: var(--radius); padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid var(--border); }
         h1, h2, h3 { font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
         
-        /* CORRECCIÓN: Evitar que la etiqueta del bloque se ponga a la izquierda del texto en la pregunta */
         #question-text { align-items: flex-start; flex-direction: column; gap: 8px; }
 
         .btn { background-color: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; justify-content: center; transition: 0.2s; text-decoration: none; }
@@ -86,7 +85,6 @@
         .bookmark-btn.active { color: var(--warning); }
         .bookmark-btn:hover { transform: scale(1.1); }
         
-        /* Progress Bar para Stats */
         .stat-bar { height: 6px; background: var(--border); border-radius: 3px; margin-top: 5px; overflow: hidden; }
         .stat-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease-out; }
     </style>
@@ -321,6 +319,12 @@
             }
         }
 
+        // --- SANITIZADOR DE PREGUNTAS ---
+        function cleanQuestionData(q) {
+            if(q.correcta) q.correcta = q.correcta.trim().toUpperCase();
+            return q;
+        }
+
         // --- MINIJUEGO ---
         async function loadMinigame() {
             minigameAnswered = false; 
@@ -344,9 +348,10 @@
                 const text = await resContent.text();
                 const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
                 
-                const q = parsed.data[Math.floor(Math.random() * parsed.data.length)];
-                const cleanFolderName = rFolder.folderName.replace(/_/g,' ');
+                let q = parsed.data[Math.floor(Math.random() * parsed.data.length)];
+                q = cleanQuestionData(q); // ¡Limpieza aplicada!
                 
+                const cleanFolderName = rFolder.folderName.replace(/_/g,' ');
                 q.category = cleanFolderName; 
 
                 document.getElementById('random-question-text').innerHTML = `<span style="font-size:12px; color:var(--primary); display:block; margin-bottom:5px; font-weight:600;">[${q.category}]</span> ${q.pregunta}`;
@@ -459,8 +464,11 @@
                 const t = await res.text();
                 const p = Papa.parse(t, { header: true, skipEmptyLines: true });
                 const cat = c.dataset.category;
-                p.data.forEach(q => { q.category = cat; });
-                currentTest.questions.push(...p.data);
+                p.data.forEach(q => { 
+                    q = cleanQuestionData(q); // ¡Limpieza aplicada!
+                    q.category = cat; 
+                    currentTest.questions.push(q);
+                });
             }
             
             shuffleArray(currentTest.questions);
@@ -479,7 +487,7 @@
             
             document.getElementById('test-progress').innerText = `Pregunta ${currentTest.currentIndex + 1} de ${currentTest.questions.length}`;
             
-            document.getElementById('question-text').innerHTML = `<span style="font-size:12px; color:var(--primary); font-weight:600;">[${q.category || 'General'}]</span> <span>${q.pregunta}</span>`;
+            document.getElementById('question-text').innerHTML = `<span style="font-size:12px; color:var(--primary); display:block; margin-bottom:5px; font-weight:600;">[${q.category || 'General'}]</span> <span>${q.pregunta}</span>`;
             
             document.getElementById('btn-prev').style.display = (isEnd && currentTest.currentIndex > 0) ? 'inline-flex' : 'none';
             document.getElementById('btn-next').innerText = (currentTest.currentIndex === currentTest.questions.length - 1) ? 'Finalizar' : 'Siguiente';
@@ -526,13 +534,13 @@
 
         function handleSelection(btn, letter, correct) {
             const q = currentTest.questions[currentTest.currentIndex]; 
-            q.userAnswer = letter;
+            q.userAnswer = letter.toUpperCase();
             
             if (appSettings.correctionMode === 'instant') {
                 const buttons = document.querySelectorAll('#test-options .option-btn');
                 buttons.forEach(b => b.disabled = true);
                 
-                if (letter === correct) { 
+                if (q.userAnswer === correct) { 
                     btn.classList.add('correct'); 
                     currentTest.correctAnswers++; 
                 } else { 
@@ -626,6 +634,7 @@
                     <div class="csv-list" id="${id}" style="background:var(--bg-color); padding: 15px;">`;
                 
                 grouped[cat].forEach((q, i) => {
+                    const cCorrecta = q.correcta ? q.correcta.trim().toUpperCase() : '';
                     html += `
                         <div class="card" style="margin-bottom:15px; padding:15px;">
                             <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
@@ -633,10 +642,10 @@
                                 <button onclick="removeBookmarkFromList('${q.pregunta.replace(/'/g, "\\'")}')" style="background:none; border:none; color:var(--danger); cursor:pointer;"><i data-lucide="trash-2" style="width:18px;"></i></button>
                             </div>
                             <div style="font-size:14px;">
-                                <div style="padding:6px; margin:2px 0; border-radius:4px; ${q.correcta === 'A' ? 'background:#D1FAE5; color:#065F46; font-weight:600;' : ''}">A) ${q.a}</div>
-                                <div style="padding:6px; margin:2px 0; border-radius:4px; ${q.correcta === 'B' ? 'background:#D1FAE5; color:#065F46; font-weight:600;' : ''}">B) ${q.b}</div>
-                                <div style="padding:6px; margin:2px 0; border-radius:4px; ${q.correcta === 'C' ? 'background:#D1FAE5; color:#065F46; font-weight:600;' : ''}">C) ${q.c}</div>
-                                <div style="padding:6px; margin:2px 0; border-radius:4px; ${q.correcta === 'D' ? 'background:#D1FAE5; color:#065F46; font-weight:600;' : ''}">D) ${q.d}</div>
+                                <div style="padding:6px; margin:2px 0; border-radius:4px; ${cCorrecta === 'A' ? 'background:#D1FAE5; color:#065F46; font-weight:600;' : ''}">A) ${q.a}</div>
+                                <div style="padding:6px; margin:2px 0; border-radius:4px; ${cCorrecta === 'B' ? 'background:#D1FAE5; color:#065F46; font-weight:600;' : ''}">B) ${q.b}</div>
+                                <div style="padding:6px; margin:2px 0; border-radius:4px; ${cCorrecta === 'C' ? 'background:#D1FAE5; color:#065F46; font-weight:600;' : ''}">C) ${q.c}</div>
+                                <div style="padding:6px; margin:2px 0; border-radius:4px; ${cCorrecta === 'D' ? 'background:#D1FAE5; color:#065F46; font-weight:600;' : ''}">D) ${q.d}</div>
                             </div>
                         </div>`;
                 });
@@ -705,18 +714,22 @@
         function renderReview(qs) {
             const c = document.getElementById('review-container'); c.innerHTML = '';
             qs.forEach((q, i) => {
+                const cleanC = q.correcta ? q.correcta.trim().toUpperCase() : '';
+                const cleanU = q.userAnswer ? q.userAnswer.trim().toUpperCase() : '';
+
                 const d = document.createElement('div'); d.className = 'review-q';
                 d.innerHTML = `
                     <span style="font-size:12px; color:var(--primary); font-weight:600;">[${q.category || 'General'}]</span>
                     <p style="margin-bottom:8px;"><b>${i+1}. ${q.pregunta}</b></p>` + 
                 ['a','b','c','d'].map(l => {
                     if(!q[l]) return '';
-                    const isCorrect = (q.correcta === l.toUpperCase());
-                    const isUserAns = (q.userAnswer === l.toUpperCase());
+                    const L = l.toUpperCase();
+                    const isCorrect = (cleanC === L);
+                    const isUserAns = (cleanU === L);
                     let cssClass = 'r-option';
                     if(isCorrect) cssClass += ' r-correct';
                     else if(isUserAns) cssClass += ' r-wrong';
-                    return `<div class="${cssClass}">${l.toUpperCase()}) ${q[l]} ${isUserAns ? '<b>(Tu respuesta)</b>' : ''}</div>`;
+                    return `<div class="${cssClass}">${L}) ${q[l]} ${isUserAns ? '<b>(Tu respuesta)</b>' : ''}</div>`;
                 }).join('');
                 c.appendChild(d);
             });
