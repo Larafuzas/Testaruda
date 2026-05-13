@@ -48,6 +48,8 @@
         .btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .btn-icon-only { padding: 8px; background: transparent; color: var(--text-muted); border: none; cursor: pointer; transition: 0.2s; border-radius: 8px; }
         .btn-icon-only:hover { background: var(--bg-color); color: var(--primary); }
+        .btn-danger { color: var(--danger); border-color: var(--danger); background: transparent; }
+        .btn-danger:hover { background: #FEF2F2; }
 
         #ota-alert { display: none; background: var(--success); color: white; padding: 12px; border-radius: 10px; margin-bottom: 20px; text-align: center; font-weight: 600; cursor: pointer; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
@@ -71,8 +73,12 @@
         .csv-item { display: flex; align-items: center; gap: 12px; font-size: 14px; cursor: pointer; padding: 4px 0; }
         .csv-item input { width: 18px; height: 18px; }
 
-        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid var(--border); cursor: pointer; transition: 0.2s; }
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border-bottom: 1px solid var(--border); transition: 0.2s; }
         .history-item:hover { background: #F3F4F6; }
+        .history-item-content { flex: 1; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding-right: 15px; }
+        .history-delete-btn { background: none; border: none; color: var(--danger); cursor: pointer; padding: 8px; border-radius: 6px; }
+        .history-delete-btn:hover { background: #FEE2E2; }
+        
         .score-badge { background: var(--primary); color: white; padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; }
         .timer { font-variant-numeric: tabular-nums; color: var(--danger); font-weight: 600; display: flex; align-items: center; gap: 5px; }
 
@@ -87,6 +93,10 @@
         
         .stat-bar { height: 6px; background: var(--border); border-radius: 3px; margin-top: 5px; overflow: hidden; }
         .stat-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease-out; }
+        
+        /* Filtros History */
+        .filter-select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 14px; background: white; }
+        .date-input { padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 14px; width: 100%; }
     </style>
 </head>
 <body>
@@ -198,8 +208,29 @@
 
         <div id="screen-history" class="screen">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2>Progreso y Estadísticas</h2>
+                <h2>Tu Progreso</h2>
                 <button class="btn btn-sm btn-outline" onclick="showScreen('screen-home')">Volver</button>
+            </div>
+            
+            <div class="card" style="padding: 15px; margin-bottom: 20px;">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <div style="flex: 1;">
+                        <select id="history-filter" class="filter-select" onchange="applyHistoryFilter()">
+                            <option value="all">Todo el tiempo</option>
+                            <option value="week">Última semana</option>
+                            <option value="month">Último mes</option>
+                            <option value="custom">Rango personalizado...</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-outline btn-danger btn-sm" onclick="clearFilteredHistory()" title="Borrar registros actuales">
+                        <i data-lucide="trash-2"></i>
+                    </button>
+                </div>
+                
+                <div id="custom-date-filters" style="display: none; gap: 10px; margin-top: 10px;">
+                    <div style="flex:1"><label style="font-size:12px; color:var(--text-muted)">Desde</label><input type="date" id="filter-start" class="date-input" onchange="applyHistoryFilter()"></div>
+                    <div style="flex:1"><label style="font-size:12px; color:var(--text-muted)">Hasta</label><input type="date" id="filter-end" class="date-input" onchange="applyHistoryFilter()"></div>
+                </div>
             </div>
             
             <div class="card" style="padding: 20px;">
@@ -261,8 +292,8 @@
         // ESTADO GLOBAL
         let appSettings = JSON.parse(localStorage.getItem('testaruda_settings')) || { timePerQuestion: 60, correctionMode: 'instant' };
         let activityLog = JSON.parse(localStorage.getItem('testaruda_log')) || [];
+        let minigameLog = JSON.parse(localStorage.getItem('testaruda_minigame_log')) || []; // Historial de calentamiento
         let bookmarkedQuestions = JSON.parse(localStorage.getItem('testaruda_bookmarks')) || [];
-        let globalStats = JSON.parse(localStorage.getItem('testaruda_stats')) || {}; 
         let categoryTotals = JSON.parse(localStorage.getItem('testaruda_category_totals')) || {};
         
         let currentTest = { questions: [], currentIndex: 0, correctAnswers: 0, timer: null };
@@ -277,7 +308,7 @@
             loadMinigame(); 
         };
 
-        // --- ALGORITMOS MATEMÁTICOS Y ESTADÍSTICAS ---
+        // --- ALGORITMOS MATEMÁTICOS ---
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -285,12 +316,14 @@
             }
         }
 
-        function updateGlobalStats(category, isCorrect) {
-            const cat = category || 'General';
-            if(!globalStats[cat]) globalStats[cat] = { correct: 0, total: 0 };
-            globalStats[cat].total++;
-            if(isCorrect) globalStats[cat].correct++;
-            localStorage.setItem('testaruda_stats', JSON.stringify(globalStats));
+        // Recuperar timestamp si es un registro muy antiguo sin él
+        function getFallbackTimestamp(dateStr) {
+            if (!dateStr) return 0;
+            try {
+                let p = dateStr.split(/[^\d]/).filter(Boolean);
+                if(p.length >= 3) return new Date(p[2], p[1]-1, p[0]).getTime();
+            }catch(e){}
+            return 0;
         }
 
         // --- GITHUB FETCH Y CONTEO GLOBAL DE PREGUNTAS ---
@@ -306,14 +339,10 @@
                         const files = await fRes.json();
                         const csvFiles = files.filter(f => f.name.endsWith('.csv'));
                         if(csvFiles.length > 0) {
-                            repoStructure.push({
-                                folderName: folder.name,
-                                files: csvFiles
-                            });
+                            repoStructure.push({ folderName: folder.name, files: csvFiles });
                         }
                     }
                 }
-                
                 calculateCategoryTotals();
                 return true;
             } catch(e) {
@@ -342,13 +371,10 @@
             }
             if (updated) {
                 localStorage.setItem('testaruda_category_totals', JSON.stringify(categoryTotals));
-                if(document.getElementById('screen-history').classList.contains('active')) {
-                    renderHistory();
-                }
+                if(document.getElementById('screen-history').classList.contains('active')) renderHistory();
             }
         }
 
-        // --- SANITIZADOR DE PREGUNTAS ---
         function cleanQuestionData(q) {
             if(q.correcta) q.correcta = q.correcta.trim().toUpperCase();
             return q;
@@ -402,7 +428,10 @@
                         document.querySelectorAll('#random-options .option-btn').forEach(b => b.disabled = true);
                         
                         const isCorrect = (l.toUpperCase() === q.correcta);
-                        updateGlobalStats(q.category, isCorrect);
+                        
+                        // Guardamos registro dinámico del minijuego para estadísticas
+                        minigameLog.push({ t: new Date().getTime(), c: q.category, v: isCorrect ? 1 : 0 });
+                        localStorage.setItem('testaruda_minigame_log', JSON.stringify(minigameLog));
                         
                         if (isCorrect) {
                             btn.classList.add('correct');
@@ -437,17 +466,10 @@
             const success = await fetchRepoStructure();
             loader.style.display = 'none';
 
-            if(!success) {
-                loader.style.display = 'block';
-                loader.innerText = "Error al conectar con GitHub.";
-                return;
-            }
+            if(!success) { loader.style.display = 'block'; loader.innerText = "Error de conexión."; return; }
 
             controls.style.display = 'flex';
-            
-            for (let item of repoStructure) {
-                renderThemeGroup(item.folderName, item.files);
-            }
+            for (let item of repoStructure) renderThemeGroup(item.folderName, item.files);
             lucide.createIcons();
         }
 
@@ -459,22 +481,10 @@
             div.className = 'theme-group';
             div.innerHTML = `
                 <div class="theme-header">
-                    <div class="theme-header-info" onclick="toggleList('${id}')">
-                        <i data-lucide="folder"></i> 
-                        <span>${cleanName}</span>
-                        <i data-lucide="chevron-down" style="width:14px; margin-left:5px;"></i>
-                    </div>
-                    <div class="theme-category-actions">
-                        <span onclick="selectCategory('${id}', true)">Todo</span>
-                        <span onclick="selectCategory('${id}', false)">Nada</span>
-                    </div>
+                    <div class="theme-header-info" onclick="toggleList('${id}')"><i data-lucide="folder"></i><span>${cleanName}</span><i data-lucide="chevron-down" style="width:14px; margin-left:5px;"></i></div>
+                    <div class="theme-category-actions"><span onclick="selectCategory('${id}', true)">Todo</span><span onclick="selectCategory('${id}', false)">Nada</span></div>
                 </div>
-                <div class="csv-list" id="${id}">${files.map(f => `
-                    <label class="csv-item">
-                        <input type="checkbox" class="csv-check" data-url="${f.download_url}" data-category="${cleanName}">
-                        ${f.name.replace('.csv','').replace(/_/g,' ')}
-                    </label>`).join('')}
-                </div>`;
+                <div class="csv-list" id="${id}">${files.map(f => `<label class="csv-item"><input type="checkbox" class="csv-check" data-url="${f.download_url}" data-category="${cleanName}">${f.name.replace('.csv','').replace(/_/g,' ')}</label>`).join('')}</div>`;
             container.appendChild(div);
         }
 
@@ -494,9 +504,7 @@
                 const p = Papa.parse(t, { header: true, skipEmptyLines: true });
                 const cat = c.dataset.category;
                 p.data.forEach(q => { 
-                    q = cleanQuestionData(q); 
-                    q.category = cat; 
-                    currentTest.questions.push(q);
+                    q = cleanQuestionData(q); q.category = cat; currentTest.questions.push(q);
                 });
             }
             
@@ -515,46 +523,34 @@
             const isEnd = appSettings.correctionMode === 'end';
             
             document.getElementById('test-progress').innerText = `Pregunta ${currentTest.currentIndex + 1} de ${currentTest.questions.length}`;
-            
             document.getElementById('question-text').innerHTML = `<span style="font-size:12px; color:var(--primary); display:block; margin-bottom:5px; font-weight:600;">[${q.category || 'General'}]</span> <span>${q.pregunta}</span>`;
             
             document.getElementById('btn-prev').style.display = (isEnd && currentTest.currentIndex > 0) ? 'inline-flex' : 'none';
             document.getElementById('btn-next').innerText = (currentTest.currentIndex === currentTest.questions.length - 1) ? 'Finalizar' : 'Siguiente';
             
             const starBtn = document.getElementById('btn-bookmark');
-            const isBookmarked = bookmarkedQuestions.some(b => b.pregunta === q.pregunta);
-            if (isBookmarked) {
+            if (bookmarkedQuestions.some(b => b.pregunta === q.pregunta)) {
                 starBtn.classList.add('active');
                 starBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>';
             } else {
                 starBtn.classList.remove('active');
-                starBtn.innerHTML = '<i data-lucide="star"></i>';
-                lucide.createIcons();
+                starBtn.innerHTML = '<i data-lucide="star"></i>'; lucide.createIcons();
             }
 
             const optsDiv = document.getElementById('test-options'); optsDiv.innerHTML = '';
             
             ['a','b','c','d'].forEach(l => {
                 if(!q[l]) return;
-                const btn = document.createElement('button'); 
-                btn.className = 'option-btn'; 
-                btn.innerText = `${l.toUpperCase()}) ${q[l]}`;
-                
+                const btn = document.createElement('button'); btn.className = 'option-btn'; btn.innerText = `${l.toUpperCase()}) ${q[l]}`;
                 if (isEnd) {
                     if (q.userAnswer === l.toUpperCase()) btn.classList.add('selected');
                     btn.onclick = () => handleSelection(btn, l.toUpperCase(), q.correcta);
                 } else {
                     if (q.userAnswer) {
                         btn.disabled = true; 
-                        if (q.userAnswer === l.toUpperCase()) {
-                            btn.classList.add(q.userAnswer === q.correcta ? 'correct' : 'wrong');
-                        }
-                        if (l.toUpperCase() === q.correcta) {
-                            btn.classList.add('correct');
-                        }
-                    } else {
-                        btn.onclick = () => handleSelection(btn, l.toUpperCase(), q.correcta);
-                    }
+                        if (q.userAnswer === l.toUpperCase()) btn.classList.add(q.userAnswer === q.correcta ? 'correct' : 'wrong');
+                        if (l.toUpperCase() === q.correcta) btn.classList.add('correct');
+                    } else btn.onclick = () => handleSelection(btn, l.toUpperCase(), q.correcta);
                 }
                 optsDiv.appendChild(btn);
             });
@@ -566,19 +562,11 @@
             q.userAnswer = letter.toUpperCase();
             
             if (appSettings.correctionMode === 'instant') {
-                const buttons = document.querySelectorAll('#test-options .option-btn');
-                buttons.forEach(b => b.disabled = true);
-                
-                if (q.userAnswer === correct) { 
-                    btn.classList.add('correct'); 
-                    currentTest.correctAnswers++; 
-                } else { 
-                    btn.classList.add('wrong'); 
-                    buttons.forEach(b => { if(b.innerText.startsWith(correct)) b.classList.add('correct'); }); 
-                }
+                document.querySelectorAll('#test-options .option-btn').forEach(b => b.disabled = true);
+                if (q.userAnswer === correct) { btn.classList.add('correct'); currentTest.correctAnswers++; }
+                else { btn.classList.add('wrong'); document.querySelectorAll('#test-options .option-btn').forEach(b => { if(b.innerText.startsWith(correct)) b.classList.add('correct'); }); }
             } else {
-                const buttons = document.querySelectorAll('#test-options .option-btn');
-                buttons.forEach(b => b.classList.remove('selected'));
+                document.querySelectorAll('#test-options .option-btn').forEach(b => b.classList.remove('selected'));
                 btn.classList.add('selected');
             }
             document.getElementById('btn-next').disabled = false;
@@ -589,23 +577,16 @@
 
         function finishTest() {
             clearInterval(currentTest.timer);
-            
             currentTest.correctAnswers = 0;
-            currentTest.questions.forEach(q => {
-                const isCorrect = (q.userAnswer === q.correcta);
-                if (isCorrect) currentTest.correctAnswers++;
-                if (q.userAnswer) { 
-                    updateGlobalStats(q.category, isCorrect);
-                }
-            });
+            currentTest.questions.forEach(q => { if (q.userAnswer === q.correcta) currentTest.correctAnswers++; });
             
-            const questionsCopy = JSON.parse(JSON.stringify(currentTest.questions));
             const log = { 
+                timestamp: new Date().getTime(), // Nuevo: Sello de tiempo real
                 date: new Date().toLocaleString(), 
                 score: currentTest.correctAnswers, 
                 total: currentTest.questions.length, 
                 time: document.getElementById('test-timer').innerText,
-                questions: questionsCopy 
+                questions: JSON.parse(JSON.stringify(currentTest.questions)) 
             };
             
             activityLog.push(log); 
@@ -621,8 +602,7 @@
             const index = bookmarkedQuestions.findIndex(b => b.pregunta === q.pregunta);
             if (index > -1) bookmarkedQuestions.splice(index, 1);
             else {
-                const qCopy = {...q};
-                delete qCopy.userAnswer;
+                const qCopy = {...q}; delete qCopy.userAnswer;
                 if(!qCopy.category) qCopy.category = 'General';
                 bookmarkedQuestions.push(qCopy); 
             }
@@ -640,103 +620,142 @@
             const container = document.getElementById('bookmarks-container');
             container.innerHTML = '';
             
-            if (bookmarkedQuestions.length === 0) {
-                container.innerHTML = '<div class="card" style="text-align:center; color:var(--text-muted);">No has guardado ninguna pregunta aún.</div>';
-                return;
-            }
-
-            const grouped = bookmarkedQuestions.reduce((acc, q) => {
-                acc[q.category] = acc[q.category] || [];
-                acc[q.category].push(q);
-                return acc;
-            }, {});
+            if (bookmarkedQuestions.length === 0) { container.innerHTML = '<div class="card" style="text-align:center; color:var(--text-muted);">No has guardado ninguna pregunta aún.</div>'; return; }
+            const grouped = bookmarkedQuestions.reduce((acc, q) => { acc[q.category] = acc[q.category] || []; acc[q.category].push(q); return acc; }, {});
 
             Object.keys(grouped).forEach(cat => {
                 const id = 'bm_' + Math.random().toString(36).substr(2, 5);
-                const div = document.createElement('div');
-                div.className = 'theme-group';
-                let html = `
-                    <div class="theme-header" onclick="toggleList('${id}')" style="cursor:pointer;">
-                        <span style="display:flex; align-items:center; gap:8px;"><i data-lucide="folder"></i> ${cat} (${grouped[cat].length})</span>
-                        <i data-lucide="chevron-down"></i>
-                    </div>
-                    <div class="csv-list" id="${id}" style="background:var(--bg-color); padding: 15px;">`;
-                
+                const div = document.createElement('div'); div.className = 'theme-group';
+                let html = `<div class="theme-header" onclick="toggleList('${id}')" style="cursor:pointer;"><span style="display:flex; align-items:center; gap:8px;"><i data-lucide="folder"></i> ${cat} (${grouped[cat].length})</span><i data-lucide="chevron-down"></i></div><div class="csv-list" id="${id}" style="background:var(--bg-color); padding: 15px;">`;
                 grouped[cat].forEach((q, i) => {
-                    const cCorrecta = q.correcta ? q.correcta.trim().toUpperCase() : '';
-                    html += `
-                        <div class="card" style="margin-bottom:15px; padding:15px;">
-                            <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
-                                <strong>${i+1}. ${q.pregunta}</strong>
-                                <button onclick="removeBookmarkFromList('${q.pregunta.replace(/'/g, "\\'")}')" style="background:none; border:none; color:var(--danger); cursor:pointer;"><i data-lucide="trash-2" style="width:18px;"></i></button>
-                            </div>
-                            <div style="font-size:14px;">
-                                <div style="padding:6px; margin:2px 0; border-radius:4px; ${cCorrecta === 'A' ? 'background:#D1FAE5; color:#065F46; font-weight:600;' : ''}">A) ${q.a}</div>
-                                <div style="padding:6px; margin:2px 0; border-radius:4px; ${cCorrecta === 'B' ? 'background:#D1FAE5; color:#065F46; font-weight:600;' : ''}">B) ${q.b}</div>
-                                <div style="padding:6px; margin:2px 0; border-radius:4px; ${cCorrecta === 'C' ? 'background:#D1FAE5; color:#065F46; font-weight:600;' : ''}">C) ${q.c}</div>
-                                <div style="padding:6px; margin:2px 0; border-radius:4px; ${cCorrecta === 'D' ? 'background:#D1FAE5; color:#065F46; font-weight:600;' : ''}">D) ${q.d}</div>
-                            </div>
-                        </div>`;
+                    const cC = q.correcta ? q.correcta.trim().toUpperCase() : '';
+                    html += `<div class="card" style="margin-bottom:15px; padding:15px;"><div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;"><strong>${i+1}. ${q.pregunta}</strong><button onclick="removeBookmarkFromList('${q.pregunta.replace(/'/g, "\\'")}')" class="history-delete-btn"><i data-lucide="trash-2" style="width:18px;"></i></button></div><div style="font-size:14px;"><div style="padding:6px; margin:2px 0; border-radius:4px; ${cC === 'A' ? 'background:#D1FAE5; color:#065F46; font-weight:600;' : ''}">A) ${q.a}</div><div style="padding:6px; margin:2px 0; border-radius:4px; ${cC === 'B' ? 'background:#D1FAE5; color:#065F46; font-weight:600;' : ''}">B) ${q.b}</div><div style="padding:6px; margin:2px 0; border-radius:4px; ${cC === 'C' ? 'background:#D1FAE5; color:#065F46; font-weight:600;' : ''}">C) ${q.c}</div><div style="padding:6px; margin:2px 0; border-radius:4px; ${cC === 'D' ? 'background:#D1FAE5; color:#065F46; font-weight:600;' : ''}">D) ${q.d}</div></div></div>`;
                 });
-                html += `</div>`;
-                div.innerHTML = html;
-                container.appendChild(div);
+                html += `</div>`; div.innerHTML = html; container.appendChild(div);
             });
             lucide.createIcons();
         }
 
-        // --- HISTORIAL Y ESTADÍSTICAS ---
+        // --- FILTROS, HISTORIAL Y ESTADÍSTICAS DINÁMICAS ---
+        function applyHistoryFilter() { renderHistory(); }
+
+        function getFilteredLogs() {
+            const filter = document.getElementById('history-filter').value;
+            const sIn = document.getElementById('filter-start').value;
+            const eIn = document.getElementById('filter-end').value;
+            
+            document.getElementById('custom-date-filters').style.display = (filter === 'custom') ? 'flex' : 'none';
+
+            let now = new Date().getTime(), cutoff = 0, cStart = 0, cEnd = Infinity;
+            if (filter === 'week') cutoff = now - (7 * 24 * 60 * 60 * 1000);
+            else if (filter === 'month') cutoff = now - (30 * 24 * 60 * 60 * 1000);
+            else if (filter === 'custom') {
+                if (sIn) cStart = new Date(sIn).getTime();
+                if (eIn) cEnd = new Date(eIn).getTime() + (23*59*59*1000);
+            }
+
+            const filterFn = (entry) => {
+                let t = entry.timestamp || entry.t || getFallbackTimestamp(entry.date);
+                if (filter === 'custom') return t >= cStart && t <= cEnd;
+                return t >= cutoff;
+            };
+
+            return {
+                fActivity: activityLog.filter(filterFn),
+                fMinigame: minigameLog.filter(filterFn)
+            };
+        }
+
         function renderHistory() {
+            const { fActivity, fMinigame } = getFilteredLogs();
+            
+            // 1. Calcular Estadísticas Dinámicas
+            let dStats = {};
+            fMinigame.forEach(m => {
+                let cat = m.c || 'General';
+                if(!dStats[cat]) dStats[cat] = { correct: 0, total: 0 };
+                dStats[cat].total++;
+                if(m.v === 1) dStats[cat].correct++;
+            });
+            fActivity.forEach(test => {
+                if(!test.questions) return;
+                test.questions.forEach(q => {
+                    if(q.userAnswer) { 
+                        let cat = q.category || 'General';
+                        if(!dStats[cat]) dStats[cat] = { correct: 0, total: 0 };
+                        dStats[cat].total++;
+                        if(q.userAnswer === q.correcta) dStats[cat].correct++;
+                    }
+                });
+            });
+
+            // 2. Renderizar Gráficos
             const statsCont = document.getElementById('stats-container');
-            if (Object.keys(globalStats).length === 0) {
-                statsCont.innerHTML = '<div style="color:var(--text-muted); font-size:14px; text-align:center;">Realiza tu primer test o minijuego para ver tus resultados aquí.</div>';
+            if (Object.keys(dStats).length === 0) {
+                statsCont.innerHTML = '<div style="color:var(--text-muted); font-size:14px; text-align:center;">No hay resultados en el periodo seleccionado.</div>';
             } else {
-                statsCont.innerHTML = Object.keys(globalStats).map(cat => {
-                    const st = globalStats[cat];
+                statsCont.innerHTML = Object.keys(dStats).map(cat => {
+                    const st = dStats[cat];
                     const pct = Math.round((st.correct / st.total) * 100);
                     let color = 'var(--success)';
                     if (pct < 50) color = 'var(--danger)';
                     else if (pct < 80) color = 'var(--warning)';
 
-                    const totalDisponibles = categoryTotals[cat] ? ` <span style="font-weight:400; color:var(--text-muted); font-size:12px;">(${categoryTotals[cat]})</span>` : '';
+                    const totalDisp = categoryTotals[cat] ? ` <span style="font-weight:400; color:var(--text-muted); font-size:12px;">(${categoryTotals[cat]})</span>` : '';
 
-                    return `
-                        <div style="margin-bottom: 12px;">
-                            <div style="display:flex; justify-content:space-between; font-size:14px; font-weight:600; margin-bottom:4px;">
-                                <span>${cat}${totalDisponibles}</span>
-                                <span style="color:${color}">${pct}% <span style="color:var(--text-muted); font-size:12px; font-weight:400;">(${st.correct}/${st.total})</span></span>
-                            </div>
-                            <div class="stat-bar">
-                                <div class="stat-fill" style="width:${pct}%; background:${color};"></div>
-                            </div>
-                        </div>`;
+                    return `<div style="margin-bottom: 12px;"><div style="display:flex; justify-content:space-between; font-size:14px; font-weight:600; margin-bottom:4px;"><span>${cat}${totalDisp}</span><span style="color:${color}">${pct}% <span style="color:var(--text-muted); font-size:12px; font-weight:400;">(${st.correct}/${st.total})</span></span></div><div class="stat-bar"><div class="stat-fill" style="width:${pct}%; background:${color};"></div></div></div>`;
                 }).join('');
             }
 
+            // 3. Renderizar Lista de Tests
             const c = document.getElementById('history-container');
-            if (activityLog.length === 0) { c.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted);">Sin registros aún.</div>'; return; }
+            if (fActivity.length === 0) { c.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted);">Sin registros en este periodo.</div>'; return; }
             
-            c.innerHTML = activityLog.slice().reverse().map((e, index) => {
-                const realIndex = activityLog.length - 1 - index;
+            c.innerHTML = fActivity.slice().reverse().map((e) => {
+                const realIndex = activityLog.indexOf(e);
                 const hasData = e.questions && e.questions.length > 0;
                 return `
-                <div class="history-item" ${hasData ? `onclick="viewPastTest(${realIndex})"` : ''} style="${!hasData ? 'opacity:0.6; cursor:not-allowed;' : ''}">
-                    <div>
-                        <b>${e.date}</b><br>
-                        <small style="color:var(--text-muted); display:flex; align-items:center; gap:4px;"><i data-lucide="clock" style="width:12px"></i> ${e.time} ${!hasData ? '(Sin datos)' : ''}</small>
+                <div class="history-item">
+                    <div class="history-item-content" ${hasData ? `onclick="viewPastTest(${realIndex})"` : ''} style="${!hasData ? 'opacity:0.6; cursor:not-allowed;' : ''}">
+                        <div><b>${e.date}</b><br><small style="color:var(--text-muted); display:flex; align-items:center; gap:4px;"><i data-lucide="clock" style="width:12px"></i> ${e.time} ${!hasData ? '(Sin datos)' : ''}</small></div>
+                        <div class="score-badge">${e.score}/${e.total}</div>
                     </div>
-                    <div class="score-badge">${e.score}/${e.total}</div>
+                    <button class="history-delete-btn" onclick="deleteHistoryItem(${realIndex})" title="Borrar Test"><i data-lucide="trash-2"></i></button>
                 </div>`;
             }).join('');
             lucide.createIcons();
         }
 
+        // --- BORRADO INDIVIDUAL Y MASIVO ---
+        function deleteHistoryItem(index) {
+            if(confirm("¿Estás seguro de que quieres borrar este test? Esta acción no afectará a tus marcadores, pero sí a tus estadísticas globales.")) {
+                activityLog.splice(index, 1);
+                localStorage.setItem('testaruda_log', JSON.stringify(activityLog));
+                renderHistory();
+            }
+        }
+
+        function clearFilteredHistory() {
+            const filter = document.getElementById('history-filter').value;
+            let msg = filter === 'all' ? "¿Borrar TODO el historial y poner las estadísticas a 0?" : "¿Borrar los tests y estadísticas del PERIODO FILTRADO actual?";
+            
+            if(confirm(msg)) {
+                if(filter === 'all') {
+                    activityLog = []; minigameLog = [];
+                } else {
+                    const { fActivity, fMinigame } = getFilteredLogs();
+                    activityLog = activityLog.filter(a => !fActivity.includes(a));
+                    minigameLog = minigameLog.filter(m => !fMinigame.includes(m));
+                }
+                localStorage.setItem('testaruda_log', JSON.stringify(activityLog));
+                localStorage.setItem('testaruda_minigame_log', JSON.stringify(minigameLog));
+                renderHistory();
+            }
+        }
+
         function viewPastTest(index) {
             const test = activityLog[index];
-            if (test && test.questions && test.questions.length > 0) {
-                renderReview(test.questions);
-                showScreen('screen-review');
-            }
+            if (test && test.questions && test.questions.length > 0) { renderReview(test.questions); showScreen('screen-review'); }
         }
 
         // --- REVISIÓN ---
@@ -747,11 +766,8 @@
             qs.forEach((q, i) => {
                 const cleanC = q.correcta ? q.correcta.trim().toUpperCase() : '';
                 const cleanU = q.userAnswer ? q.userAnswer.trim().toUpperCase() : '';
-
                 const d = document.createElement('div'); d.className = 'review-q';
-                d.innerHTML = `
-                    <span style="font-size:12px; color:var(--primary); font-weight:600;">[${q.category || 'General'}]</span>
-                    <p style="margin-bottom:8px;"><b>${i+1}. ${q.pregunta}</b></p>` + 
+                d.innerHTML = `<span style="font-size:12px; color:var(--primary); font-weight:600;">[${q.category || 'General'}]</span><p style="margin-bottom:8px;"><b>${i+1}. ${q.pregunta}</b></p>` + 
                 ['a','b','c','d'].map(l => {
                     if(!q[l]) return '';
                     const L = l.toUpperCase();
@@ -767,41 +783,37 @@
         }
 
         function closeReview() {
-            if(document.getElementById('result-score').innerText !== "0/0" && currentTest.questions.length > 0 && currentTest.currentIndex >= currentTest.questions.length -1) {
-                showScreen('screen-results');
-            } else {
-                showScreen('screen-history');
-            }
+            if(document.getElementById('result-score').innerText !== "0/0" && currentTest.questions.length > 0 && currentTest.currentIndex >= currentTest.questions.length -1) showScreen('screen-results');
+            else showScreen('screen-history');
         }
 
         // --- EXPORTAR E IMPORTAR ---
         function exportBackup() {
-            const data = { log: activityLog, settings: appSettings, bookmarks: bookmarkedQuestions, stats: globalStats };
+            // Ya no exportamos un "stats" fijo, porque ahora se calcula dinámicamente con logs.
+            const data = { log: activityLog, minigameLog: minigameLog, settings: appSettings, bookmarks: bookmarkedQuestions };
             const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = 'testaruda_backup.json'; a.click();
+            const a = document.createElement('a'); a.href = url; a.download = 'testaruda_backup.json'; a.click();
         }
 
         function importBackup(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+            const file = e.target.files[0]; if (!file) return;
             const reader = new FileReader();
             reader.onload = (event) => {
                 try {
                     const data = JSON.parse(event.target.result);
                     activityLog = data.log || [];
+                    minigameLog = data.minigameLog || [];
                     appSettings = data.settings || appSettings;
                     bookmarkedQuestions = data.bookmarks || [];
-                    globalStats = data.stats || {};
                     
                     localStorage.setItem('testaruda_log', JSON.stringify(activityLog));
+                    localStorage.setItem('testaruda_minigame_log', JSON.stringify(minigameLog));
                     localStorage.setItem('testaruda_settings', JSON.stringify(appSettings));
                     localStorage.setItem('testaruda_bookmarks', JSON.stringify(bookmarkedQuestions));
-                    localStorage.setItem('testaruda_stats', JSON.stringify(globalStats));
-                    
-                    alert("Backup importado con éxito.");
-                    location.reload();
+                    // Borrar stats estáticos viejos por si acaso
+                    localStorage.removeItem('testaruda_stats'); 
+                    alert("Backup importado con éxito."); location.reload();
                 } catch(err) { alert("Error al leer el archivo."); }
             };
             reader.readAsText(file);
@@ -812,7 +824,12 @@
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); 
             document.getElementById(id).classList.add('active'); 
             if(id === 'screen-home' && minigameAnswered) loadMinigame();
-            if(id === 'screen-history') renderHistory(); 
+            if(id === 'screen-history') {
+                // Forzamos filtro default a "Todo el tiempo" al entrar para no causar confusión
+                document.getElementById('history-filter').value = 'all';
+                document.getElementById('custom-date-filters').style.display = 'none';
+                renderHistory(); 
+            }
             if(id === 'screen-bookmarks') renderBookmarks();
             lucide.createIcons(); 
         }
@@ -824,7 +841,7 @@
         function forceOTAUpdate() { localStorage.removeItem('testaruda_sha'); localStorage.removeItem('testaruda_category_totals'); window.location.reload(true); }
         async function checkOTAUpdate() { try { const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/commits?path=index.html&per_page=1`); const data = await res.json(); const latest = data[0].sha; const curr = localStorage.getItem('testaruda_sha'); if (curr && curr !== latest) document.getElementById('ota-alert').style.display = 'block'; if (!curr) localStorage.setItem('testaruda_sha', latest); } catch(e){} }
         function exportToPDF() { html2pdf().set({margin:10, filename:'Testaruda_Revision.pdf'}).from(document.getElementById('pdf-content')).save(); }
-        function abandonTest() { if(confirm("¿Salir?")) { clearInterval(currentTest.timer); showScreen('screen-home'); } }
+        function abandonTest() { if(confirm("¿Estás seguro de que deseas abandonar? Este test no contará para tus estadísticas.")) { clearInterval(currentTest.timer); showScreen('screen-home'); } }
     </script>
 </body>
 </html>
