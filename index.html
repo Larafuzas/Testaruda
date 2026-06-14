@@ -94,7 +94,6 @@
         .stat-bar { height: 6px; background: var(--border); border-radius: 3px; margin-top: 5px; overflow: hidden; }
         .stat-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease-out; }
         
-        /* Filtros History */
         .filter-select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 14px; background: white; }
         .date-input { padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 14px; width: 100%; }
     </style>
@@ -132,10 +131,23 @@
                 </div>
             </div>
 
-            <div class="card" style="text-align: center; padding: 40px 20px;">
+            <div class="card" style="text-align: center; padding: 40px 20px; margin-bottom: 20px;">
                 <h2>¿Preparado para estudiar?</h2>
                 <p style="color: var(--text-muted); margin-bottom: 25px;">Selecciona tus temas y ponte a prueba.</p>
                 <button class="btn" style="width: 100%;" onclick="openSetup()">Configurar Test <i data-lucide="play-circle"></i></button>
+            </div>
+
+            <div class="theme-group" style="border-color: var(--border);">
+                <div class="theme-header" onclick="document.getElementById('external-links').style.display = document.getElementById('external-links').style.display === 'flex' ? 'none' : 'flex'" style="cursor:pointer; background: transparent;">
+                    <span style="display:flex; align-items:center; gap:8px; font-weight:600;"><i data-lucide="globe"></i> Recursos Externos</span>
+                    <i data-lucide="chevron-down"></i>
+                </div>
+                <div class="csv-list" id="external-links" style="background: var(--card-bg); padding: 15px; border-top: 1px solid var(--border);">
+                    <a href="http://www.testoposicionesgratis.es/index.html" target="_blank" rel="noopener noreferrer" class="btn btn-outline" style="width: 100%; justify-content: flex-start; margin-bottom: 8px; font-weight: 400;"><i data-lucide="external-link" style="width: 16px;"></i> testoposicionesgratis.es</a>
+                    <a href="https://www.testdeley.com/" target="_blank" rel="noopener noreferrer" class="btn btn-outline" style="width: 100%; justify-content: flex-start; margin-bottom: 8px; font-weight: 400;"><i data-lucide="external-link" style="width: 16px;"></i> TestDeLey.com</a>
+                    <a href="https://oposito.es/test-oposiciones/" target="_blank" rel="noopener noreferrer" class="btn btn-outline" style="width: 100%; justify-content: flex-start; margin-bottom: 8px; font-weight: 400;"><i data-lucide="external-link" style="width: 16px;"></i> oposito.es</a>
+                    <a href="https://www.laconstitucion.es/test-constitucion/" target="_blank" rel="noopener noreferrer" class="btn btn-outline" style="width: 100%; justify-content: flex-start; font-weight: 400;"><i data-lucide="external-link" style="width: 16px;"></i> laConstitución.es</a>
+                </div>
             </div>
         </div>
 
@@ -292,7 +304,7 @@
         // ESTADO GLOBAL
         let appSettings = JSON.parse(localStorage.getItem('testaruda_settings')) || { timePerQuestion: 60, correctionMode: 'instant' };
         let activityLog = JSON.parse(localStorage.getItem('testaruda_log')) || [];
-        let minigameLog = JSON.parse(localStorage.getItem('testaruda_minigame_log')) || []; // Historial de calentamiento
+        let minigameLog = JSON.parse(localStorage.getItem('testaruda_minigame_log')) || []; 
         let bookmarkedQuestions = JSON.parse(localStorage.getItem('testaruda_bookmarks')) || [];
         let categoryTotals = JSON.parse(localStorage.getItem('testaruda_category_totals')) || {};
         
@@ -308,7 +320,6 @@
             loadMinigame(); 
         };
 
-        // --- ALGORITMOS MATEMÁTICOS ---
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -316,7 +327,6 @@
             }
         }
 
-        // Recuperar timestamp si es un registro muy antiguo sin él
         function getFallbackTimestamp(dateStr) {
             if (!dateStr) return 0;
             try {
@@ -326,7 +336,6 @@
             return 0;
         }
 
-        // --- GITHUB FETCH Y CONTEO GLOBAL DE PREGUNTAS ---
         async function fetchRepoStructure() {
             if(repoStructure.length > 0) return true; 
             try {
@@ -429,7 +438,6 @@
                         
                         const isCorrect = (l.toUpperCase() === q.correcta);
                         
-                        // Guardamos registro dinámico del minijuego para estadísticas
                         minigameLog.push({ t: new Date().getTime(), c: q.category, v: isCorrect ? 1 : 0 });
                         localStorage.setItem('testaruda_minigame_log', JSON.stringify(minigameLog));
                         
@@ -581,7 +589,7 @@
             currentTest.questions.forEach(q => { if (q.userAnswer === q.correcta) currentTest.correctAnswers++; });
             
             const log = { 
-                timestamp: new Date().getTime(), // Nuevo: Sello de tiempo real
+                timestamp: new Date().getTime(),
                 date: new Date().toLocaleString(), 
                 score: currentTest.correctAnswers, 
                 total: currentTest.questions.length, 
@@ -669,7 +677,6 @@
         function renderHistory() {
             const { fActivity, fMinigame } = getFilteredLogs();
             
-            // 1. Calcular Estadísticas Dinámicas
             let dStats = {};
             fMinigame.forEach(m => {
                 let cat = m.c || 'General';
@@ -689,7 +696,6 @@
                 });
             });
 
-            // 2. Renderizar Gráficos
             const statsCont = document.getElementById('stats-container');
             if (Object.keys(dStats).length === 0) {
                 statsCont.innerHTML = '<div style="color:var(--text-muted); font-size:14px; text-align:center;">No hay resultados en el periodo seleccionado.</div>';
@@ -707,7 +713,6 @@
                 }).join('');
             }
 
-            // 3. Renderizar Lista de Tests
             const c = document.getElementById('history-container');
             if (fActivity.length === 0) { c.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted);">Sin registros en este periodo.</div>'; return; }
             
@@ -726,7 +731,6 @@
             lucide.createIcons();
         }
 
-        // --- BORRADO INDIVIDUAL Y MASIVO ---
         function deleteHistoryItem(index) {
             if(confirm("¿Estás seguro de que quieres borrar este test? Esta acción no afectará a tus marcadores, pero sí a tus estadísticas globales.")) {
                 activityLog.splice(index, 1);
@@ -789,7 +793,6 @@
 
         // --- EXPORTAR E IMPORTAR ---
         function exportBackup() {
-            // Ya no exportamos un "stats" fijo, porque ahora se calcula dinámicamente con logs.
             const data = { log: activityLog, minigameLog: minigameLog, settings: appSettings, bookmarks: bookmarkedQuestions };
             const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -811,7 +814,6 @@
                     localStorage.setItem('testaruda_minigame_log', JSON.stringify(minigameLog));
                     localStorage.setItem('testaruda_settings', JSON.stringify(appSettings));
                     localStorage.setItem('testaruda_bookmarks', JSON.stringify(bookmarkedQuestions));
-                    // Borrar stats estáticos viejos por si acaso
                     localStorage.removeItem('testaruda_stats'); 
                     alert("Backup importado con éxito."); location.reload();
                 } catch(err) { alert("Error al leer el archivo."); }
@@ -825,7 +827,6 @@
             document.getElementById(id).classList.add('active'); 
             if(id === 'screen-home' && minigameAnswered) loadMinigame();
             if(id === 'screen-history') {
-                // Forzamos filtro default a "Todo el tiempo" al entrar para no causar confusión
                 document.getElementById('history-filter').value = 'all';
                 document.getElementById('custom-date-filters').style.display = 'none';
                 renderHistory(); 
